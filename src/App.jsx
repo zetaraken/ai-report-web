@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-const API_BASE = "https://web-production-804a3.up.railway.app";
+const API_BASE = "https://web-production-2e3e7.up.railway.app";
 
 const emptyReport = {
   merchant_name: "-",
