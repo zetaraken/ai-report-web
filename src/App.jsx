@@ -26,6 +26,8 @@ function number(value) {
 }
 
 export default function App() {
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [token, setToken] = useState(() => localStorage.getItem("admin_access_token") || "");
   const [email, setEmail] = useState(() => localStorage.getItem("admin_email") || "");
   const [login, setLogin] = useState({ email: "zetarise@gmail.com", password: "" });
@@ -93,7 +95,17 @@ export default function App() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`${API_BASE}/api/reports/${id}?period=${encodeURIComponent(period)}`, { headers });
+      const params = new URLSearchParams();
+
+if (period === "custom") {
+  params.append("period", "기간 설정");
+  params.append("start_date", startDate);
+  params.append("end_date", endDate);
+} else {
+  params.append("period", period);
+}
+
+const res = await fetch(`${API_BASE}/api/reports/${id}?${params.toString()}`, { headers });
       if (!res.ok) throw new Error(`리포트 조회 실패: HTTP ${res.status}`);
       const data = await res.json();
       setReport(data);
@@ -114,7 +126,12 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/crawl-jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ merchant_id: merchantId, period }),
+        body: JSON.stringify({
+  merchant_id: merchantId,
+  period,
+  start_date: period === "custom" ? startDate : null,
+  end_date: period === "custom" ? endDate : null,
+}),
       });
       if (!res.ok) throw new Error(`수집 작업 실패: HTTP ${res.status}`);
       const job = await res.json();
@@ -193,10 +210,20 @@ export default function App() {
           <div>
             <label>기간</label>
             <select value={period} onChange={(e)=>setPeriod(e.target.value)}>
-              <option>최근 6개월</option>
-              <option>최근 3개월</option>
-              <option>최근 1개월</option>
-            </select>
+  <option>최근 1년</option>
+  <option>최근 6개월</option>
+  <option>최근 3개월</option>
+  <option>최근 1개월</option>
+  <option value="custom">기간 설정</option>
+</select>
+
+{period === "custom" && (
+  <div className="date-range">
+    <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} />
+    <span>~</span>
+    <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} />
+  </div>
+)}
           </div>
           <div className="actions">
             <button className="primary" disabled={loading || !merchantId} onClick={runCrawl}>수집 시작</button>
@@ -210,7 +237,12 @@ export default function App() {
         <section className="titleBox">
           <div>
             <h2>{report.merchant_name} 리포트</h2>
-            <p>생성 시각: {report.generated_at}</p>
+
+<p className="report-period">
+  분석 기간: {report.period_label || period}
+</p>
+
+<p>생성 시각: {report.generated_at}</p>
           </div>
           <span>{selectedMerchant?.region || "-"}</span>
         </section>
