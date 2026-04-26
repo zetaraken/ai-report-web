@@ -67,23 +67,55 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
 
 MERCHANTS = [
     {
-        "id": "m_test_001",
         "name": "배포차",
         "region": "서울 강남구",
+        "address": "서울 강남구 도산대로1길 16 지상1, 2층",
         "naver_place_url": "https://naver.me/xv6tlDW3",
-        "blog_keywords": "배포차, 신사역 배포차",
-        "instagram_hashtags": "배포차,신사역배포차",
-        "youtube_keywords": "배포차, 신사역 배포차",
+        "blog_keywords": ["신사역 배포차", "신사동 배포차"],
+        "instagram_keywords": ["배포차"],
+        "instagram_channel": "https://www.instagram.com/bae_po_cha",
+        "youtube_keywords": ["신사역 배포차", "신사동 배포차"]
     },
     {
-        "id": "m_test_002",
-        "name": "온빈 신정호",
-        "region": "충남 아산시",
-        "naver_place_url": "https://naver.me/xdjavbzA",
-        "blog_keywords": "온빈 신정호, 신정호 맛집",
-        "instagram_hashtags": "온빈신정호,신정호맛집",
-        "youtube_keywords": "온빈 신정호, 신정호 한식",
+        "name": "소요",
+        "region": "경기 고양시",
+        "address": "경기 고양시 일산동구 월드고양로 21",
+        "naver_place_url": "https://naver.me/F0AHoPtm",
+        "blog_keywords": ["일산 소요", "고양시 소요", "일산동구 소요", "장항동 소요"],
+        "instagram_keywords": ["일산 소요", "고양시 소요", "일산동구 소요", "장항동 소요"],
+        "instagram_channel": "https://www.instagram.com/soyo_izakaya",
+        "youtube_keywords": ["일산 소요", "고양시 소요", "일산동구 소요", "장항동 소요"]
     },
+    {
+        "name": "순자매감자탕",
+        "region": "경기 화성시",
+        "address": "경기 화성시 동탄기흥로257번가길 24-11",
+        "naver_place_url": "https://naver.me/GNRzS59C",
+        "blog_keywords": ["순자매감자탕"],
+        "instagram_keywords": ["순자매감자탕"],
+        "instagram_channel": None,
+        "youtube_keywords": ["순자매감자탕"]
+    },
+    {
+        "name": "연탄김평선",
+        "region": "서울 강남구",
+        "address": "서울 강남구 선릉로90길 64",
+        "naver_place_url": "https://naver.me/xNLZbjfI",
+        "blog_keywords": ["연탄김평선"],
+        "instagram_keywords": ["연탄김평선"],
+        "instagram_channel": "https://www.instagram.com/yeon_tan_pyeongseon_kim",
+        "youtube_keywords": ["연탄김평선"]
+    },
+    {
+        "name": "라이브볼",
+        "region": "서울 강남구",
+        "address": "서울 강남구 테헤란로 147",
+        "naver_place_url": "https://naver.me/5bVsye2y",
+        "blog_keywords": ["라이브볼 역삼점", "라이브볼 역삼역", "라이브볼 역삼동"],
+        "instagram_keywords": ["라이브볼 역삼점", "라이브볼 역삼역", "라이브볼 역삼동"],
+        "instagram_channel": None,
+        "youtube_keywords": ["라이브볼 역삼점", "라이브볼 역삼역", "라이브볼 역삼동"]
+    }
 ]
 
 REPORTS: dict[str, dict[str, Any]] = {}
