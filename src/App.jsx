@@ -1,10 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import "./styles.css";
 
-const API_BASE = "https://web-production-2e3e7.up.railway.app";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.NEXT_PUBLIC_API_URL ||
+  "https://web-production-2e3e7.up.railway.app";
 
 const emptyReport = {
-  merchant_name: "-",
-  generated_at: "-",
+  merchant_name: "",
+  region: "",
+  generated_at: "",
+  period_label: "",
   summary: {
     total_mentions: 0,
     naver_blog_count: 0,
@@ -16,22 +22,33 @@ const emptyReport = {
     self_ratio: 0,
   },
   monthly_summary: [],
+  channel_share: [],
   top_videos: [],
   insights: [],
+  source_status: {},
 };
 
-function number(value) {
-  if (value === null || value === undefined || value === "") return "-";
-  return typeof value === "number" ? value.toLocaleString("ko-KR") : value;
+function formatNumber(value) {
+  const num = Number(value || 0);
+  return num.toLocaleString("ko-KR");
+}
+
+function getToken() {
+  return localStorage.getItem("token") || "";
+}
+
+function setToken(token) {
+  localStorage.setItem("token", token);
+}
+
+function clearToken() {
+  localStorage.removeItem("token");
 }
 
 export default function App() {
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
-  const [token, setToken] = useState(() => localStorage.getItem("admin_access_token") || "");
-  const [email, setEmail] = useState(() => localStorage.getItem("admin_email") || "");
-  const [login, setLogin] = useState({ email: "zetarise@gmail.com", password: "" });
-  const [loginError, setLoginError] = useState("");
+  const [email, setEmail] = useState("zetarise@gmail.com");
+  const [password, setPassword] = useState("");
+  const [token, setTokenState] = useState(getToken());
   const [merchants, setMerchants] = useState([]);
   const [merchantId, setMerchantId] = useState("");
   const [period, setPeriod] = useState("최근 6개월");
@@ -39,50 +56,93 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const headers = useMemo(() => token ? { Authorization: `Bearer ${token}` } : {}, [token]);
-  const selectedMerchant = merchants.find((m) => m.id === merchantId);
+  // 수집 상태 전용
+  const [crawlStatus, setCrawlStatus] = useState("idle"); // idle | running | success | error
+  const [crawlMessage, setCrawlMessage] = useState("");
+  const [crawlStartedAt, setCrawlStartedAt] = useState(null);
+  const [crawlElapsed, setCrawlElapsed] = useState(0);
 
-  async function handleLogin() {
-    setLoginError("");
+  const headers = useMemo(() => {
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    loadMerchants();
+  }, [token]);
+
+  useEffect(() => {
+    if (!merchantId || !token) return;
+    loadReport(merchantId);
+  }, [merchantId, period, token]);
+
+  useEffect(() => {
+    if (crawlStatus !== "running" || !crawlStartedAt) return;
+
+    const timer = setInterval(() => {
+      setCrawlElapsed(Math.floor((Date.now() - crawlStartedAt) / 1000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [crawlStatus, crawlStartedAt]);
+
+  async function login(e) {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const res = await fetch(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(login),
+        body: JSON.stringify({ email, password }),
       });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `HTTP ${res.status}`);
-      }
+
+      if (!res.ok) throw new Error(`로그인 실패: HTTP ${res.status}`);
+
       const data = await res.json();
-      localStorage.setItem("admin_access_token", data.access_token);
-      localStorage.setItem("admin_email", data.admin_email || login.email);
-      setToken(data.access_token);
-      setEmail(data.admin_email || login.email);
+      const accessToken = data.access_token || data.token;
+
+      if (!accessToken) throw new Error("로그인 응답에 토큰이 없습니다.");
+
+      setToken(accessToken);
+      setTokenState(accessToken);
+      setMessage("로그인되었습니다.");
     } catch (err) {
-      setLoginError(`로그인 실패: ${err.message}`);
+      setMessage(`로그인 실패: ${err.message || "Failed to fetch"}`);
+    } finally {
+      setLoading(false);
     }
   }
 
   function logout() {
-    localStorage.removeItem("admin_access_token");
-    localStorage.removeItem("admin_email");
-    setToken("");
-    setEmail("");
+    clearToken();
+    setTokenState("");
+    setReport(emptyReport);
     setMerchants([]);
     setMerchantId("");
-    setReport(emptyReport);
+    setMessage("");
+    setCrawlStatus("idle");
+    setCrawlMessage("");
   }
 
   async function loadMerchants() {
     setLoading(true);
     setMessage("");
+
     try {
       const res = await fetch(`${API_BASE}/api/merchants`, { headers });
       if (!res.ok) throw new Error(`가맹점 조회 실패: HTTP ${res.status}`);
+
       const data = await res.json();
-      setMerchants(data);
-      if (data.length && !merchantId) setMerchantId(data[0].id);
+      const list = Array.isArray(data) ? data : data.merchants || [];
+
+      setMerchants(list);
+
+      if (!merchantId && list.length > 0) {
+        setMerchantId(list[0].id);
+      }
     } catch (err) {
       setMessage(err.message || "가맹점 목록을 불러오지 못했습니다.");
     } finally {
@@ -92,23 +152,20 @@ export default function App() {
 
   async function loadReport(id = merchantId) {
     if (!id) return;
+
     setLoading(true);
     setMessage("");
+
     try {
-      const params = new URLSearchParams();
+      const res = await fetch(
+        `${API_BASE}/api/reports/${id}?period=${encodeURIComponent(period)}`,
+        { headers }
+      );
 
-if (period === "custom") {
-  params.append("period", "기간 설정");
-  params.append("start_date", startDate);
-  params.append("end_date", endDate);
-} else {
-  params.append("period", period);
-}
-
-const res = await fetch(`${API_BASE}/api/reports/${id}?${params.toString()}`, { headers });
       if (!res.ok) throw new Error(`리포트 조회 실패: HTTP ${res.status}`);
+
       const data = await res.json();
-      setReport(data);
+      setReport(data || emptyReport);
       setMessage("리포트를 불러왔습니다.");
     } catch (err) {
       setReport(emptyReport);
@@ -119,71 +176,113 @@ const res = await fetch(`${API_BASE}/api/reports/${id}?${params.toString()}`, { 
   }
 
   async function runCrawl() {
-    if (!merchantId) return;
-    setLoading(true);
+    if (!merchantId || crawlStatus === "running") return;
+
+    setCrawlStatus("running");
+    setCrawlStartedAt(Date.now());
+    setCrawlElapsed(0);
+    setCrawlMessage("수집 중입니다. 네이버 플레이스/블로그/유튜브 데이터를 수집하고 있습니다.");
     setMessage("수집 작업을 시작합니다.");
+
     try {
       const res = await fetch(`${API_BASE}/api/crawl-jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({
-  merchant_id: merchantId,
-  period,
-  start_date: period === "custom" ? startDate : null,
-  end_date: period === "custom" ? endDate : null,
-}),
+        body: JSON.stringify({ merchant_id: merchantId, period }),
       });
-      if (!res.ok) throw new Error(`수집 작업 실패: HTTP ${res.status}`);
-      const job = await res.json();
-      setMessage(`수집 작업 생성 완료: ${job.id || "-"}`);
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`수집 실패: HTTP ${res.status}${errText ? ` / ${errText}` : ""}`);
+      }
+
+      const data = await res.json().catch(() => ({}));
+
+      setCrawlStatus("success");
+      setCrawlMessage(
+        data?.message ||
+          "수집 완료되었습니다. 최신 리포트를 자동으로 다시 불러왔습니다."
+      );
+      setMessage("수집 완료되었습니다. 리포트를 새로고침했습니다.");
+
+      // 수집 완료 후 자동 리포트 갱신
       await loadReport(merchantId);
     } catch (err) {
-      setMessage(err.message || "수집 작업 생성 실패");
-    } finally {
-      setLoading(false);
+      setCrawlStatus("error");
+      setCrawlMessage(err.message || "수집 중 오류가 발생했습니다.");
+      setMessage(err.message || "수집 실패");
     }
   }
 
-  function downloadPdf() {
+  async function downloadPdf() {
     if (!merchantId) return;
-    window.open(`${API_BASE}/api/reports/${merchantId}/pdf?period=${encodeURIComponent(period)}`, "_blank");
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/reports/${merchantId}/pdf?period=${encodeURIComponent(period)}`,
+        { headers }
+      );
+
+      if (!res.ok) throw new Error(`PDF 다운로드 실패: HTTP ${res.status}`);
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${report.merchant_name || "report"}_report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setMessage(err.message || "PDF 다운로드 실패");
+    }
   }
-
-  useEffect(() => {
-    if (token) loadMerchants();
-  }, [token]);
-
-  useEffect(() => {
-    if (merchantId) loadReport(merchantId);
-  }, [merchantId]);
 
   if (!token) {
     return (
-      <div className="loginWrap">
-        <div className="loginCard">
+      <div className="login-page">
+        <form className="login-card" onSubmit={login}>
           <div className="badge">먼키 · AI매출업</div>
           <h1>관리자 로그인</h1>
           <p>가맹점 소셜 빅데이터 분석 리포트 내부 관리자 화면입니다.</p>
+
           <label>이메일</label>
-          <input value={login.email} onChange={(e)=>setLogin({...login,email:e.target.value})} />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} />
+
           <label>비밀번호</label>
-          <input type="password" value={login.password} onChange={(e)=>setLogin({...login,password:e.target.value})} onKeyDown={(e)=>{if(e.key==="Enter")handleLogin()}} placeholder="비밀번호" />
-          {loginError && <div className="error">{loginError}</div>}
-          <button className="primary" onClick={handleLogin}>로그인</button>
-          <div className="hint">API 서버: {API_BASE}</div>
-        </div>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          {message && <div className="error-message">{message}</div>}
+
+          <button type="submit" disabled={loading}>
+            {loading ? "로그인 중..." : "로그인"}
+          </button>
+
+          <small>API 서버: {API_BASE}</small>
+        </form>
       </div>
     );
   }
 
+  const summary = report.summary || emptyReport.summary;
+  const monthly = report.monthly_summary || [];
+  const topVideos = report.top_videos || [];
+  const insights = report.insights || [];
+  const sourceStatus = report.source_status || {};
+
   return (
-    <div className="layout">
+    <div className="app">
       <aside>
-        <div className="logo">AI매출업</div>
+        <h2>AI매출업</h2>
         <nav>
-          <button className="nav active">가맹점 리포트</button>
-          <button className="nav">수집 실행</button>
-          <button className="nav">PDF 다운로드</button>
+          <button className="active">가맹점 리포트</button>
+          <button>수집 실행</button>
+          <button>PDF 다운로드</button>
         </nav>
       </aside>
 
@@ -202,100 +301,204 @@ const res = await fetch(`${API_BASE}/api/reports/${id}?${params.toString()}`, { 
         <section className="panel controls">
           <div>
             <label>가맹점</label>
-            <select value={merchantId} onChange={(e)=>setMerchantId(e.target.value)}>
+            <select
+              value={merchantId}
+              disabled={crawlStatus === "running"}
+              onChange={(e) => setMerchantId(e.target.value)}
+            >
               {merchants.length === 0 && <option value="">가맹점 없음</option>}
-              {merchants.map((m)=><option key={m.id} value={m.id}>{m.name}</option>)}
+              {merchants.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
             </select>
           </div>
+
           <div>
             <label>기간</label>
-            <select value={period} onChange={(e)=>setPeriod(e.target.value)}>
-  <option>최근 1년</option>
-  <option>최근 6개월</option>
-  <option>최근 3개월</option>
-  <option>최근 1개월</option>
-  <option value="custom">기간 설정</option>
-</select>
-
-{period === "custom" && (
-  <div className="date-range">
-    <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} />
-    <span>~</span>
-    <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} />
-  </div>
-)}
+            <select
+              value={period}
+              disabled={crawlStatus === "running"}
+              onChange={(e) => setPeriod(e.target.value)}
+            >
+              <option>최근 1개월</option>
+              <option>최근 3개월</option>
+              <option>최근 6개월</option>
+              <option>최근 1년</option>
+            </select>
           </div>
+
           <div className="actions">
-            <button className="primary" disabled={loading || !merchantId} onClick={runCrawl}>수집 시작</button>
-            <button disabled={loading || !merchantId} onClick={()=>loadReport()}>리포트 새로고침</button>
-            <button disabled={!merchantId} onClick={downloadPdf}>PDF</button>
+            <button
+              className="primary"
+              disabled={loading || !merchantId || crawlStatus === "running"}
+              onClick={runCrawl}
+            >
+              {crawlStatus === "running" ? `수집 중... ${crawlElapsed}s` : "수집 시작"}
+            </button>
+
+            <button
+              disabled={loading || !merchantId || crawlStatus === "running"}
+              onClick={() => loadReport()}
+            >
+              리포트 새로고침
+            </button>
+
+            <button disabled={!merchantId || crawlStatus === "running"} onClick={downloadPdf}>
+              PDF
+            </button>
           </div>
         </section>
 
-        {message && <div className="msg">{message}</div>}
+        {message && <div className="message">{message}</div>}
 
-        <section className="titleBox">
+        {crawlStatus !== "idle" && (
+          <section className={`crawl-status ${crawlStatus}`}>
+            <div>
+              <strong>
+                {crawlStatus === "running" && "수집 진행 중"}
+                {crawlStatus === "success" && "수집 완료"}
+                {crawlStatus === "error" && "수집 실패"}
+              </strong>
+              <p>{crawlMessage}</p>
+            </div>
+            {crawlStatus === "running" && (
+              <div className="progress-wrap">
+                <div className="progress-bar">
+                  <span />
+                </div>
+                <small>경과 시간: {crawlElapsed}초</small>
+              </div>
+            )}
+          </section>
+        )}
+
+        <section className="report-header">
           <div>
-            <h2>{report.merchant_name} 리포트</h2>
-
-<p className="report-period">
-  분석 기간: {report.period_label || period}
-</p>
-
-<p>생성 시각: {report.generated_at}</p>
+            <h2>{report.merchant_name || "리포트"}</h2>
+            <p className="report-period">분석 기간: {report.period_label || period}</p>
+            <p>생성 시각: {report.generated_at || "-"}</p>
           </div>
-          <span>{selectedMerchant?.region || "-"}</span>
+          <span>{report.region || "-"}</span>
         </section>
 
-        <section className="kpis">
-          <Kpi title="전체 언급 수" value={report.summary.total_mentions}/>
-          <Kpi title="네이버 블로그" value={report.summary.naver_blog_count}/>
-          <Kpi title="인스타그램" value={report.summary.instagram_count}/>
-          <Kpi title="영수증 리뷰" value={report.summary.place_receipt_count}/>
-          <Kpi title="플레이스 블로그 리뷰" value={report.summary.place_blog_count}/>
-          <Kpi title="유튜브 조회수" value={report.summary.youtube_total_views}/>
-          <Kpi title="광고 비중" value={`${report.summary.ad_ratio || 0}%`}/>
-          <Kpi title="내돈내산 비중" value={`${report.summary.self_ratio || 0}%`}/>
+        <section className="cards">
+          <div className="card">
+            <span>전체 언급 수</span>
+            <strong>{formatNumber(summary.total_mentions)}</strong>
+          </div>
+          <div className="card">
+            <span>네이버 블로그</span>
+            <strong>{formatNumber(summary.naver_blog_count)}</strong>
+          </div>
+          <div className="card">
+            <span>인스타그램</span>
+            <strong>{formatNumber(summary.instagram_count)}</strong>
+          </div>
+          <div className="card">
+            <span>영수증 리뷰</span>
+            <strong>{formatNumber(summary.place_receipt_count)}</strong>
+          </div>
+          <div className="card">
+            <span>플레이스 블로그 리뷰</span>
+            <strong>{formatNumber(summary.place_blog_count)}</strong>
+          </div>
+          <div className="card">
+            <span>유튜브 조회수</span>
+            <strong>{formatNumber(summary.youtube_total_views)}</strong>
+          </div>
+          <div className="card">
+            <span>광고 비중</span>
+            <strong>{formatNumber(summary.ad_ratio)}%</strong>
+          </div>
+          <div className="card">
+            <span>내돈내산 비중</span>
+            <strong>{formatNumber(summary.self_ratio)}%</strong>
+          </div>
         </section>
 
         <section className="panel">
           <h3>월별 상세 데이터</h3>
           <table>
-            <thead><tr><th>월</th><th>블로그</th><th>인스타</th><th>영수증</th><th>플레이스 블로그</th><th>유튜브</th><th>전체</th></tr></thead>
+            <thead>
+              <tr>
+                <th>월</th>
+                <th>블로그</th>
+                <th>인스타</th>
+                <th>영수증</th>
+                <th>플레이스 블로그</th>
+                <th>유튜브</th>
+                <th>전체</th>
+              </tr>
+            </thead>
             <tbody>
-              {report.monthly_summary.length === 0 && <tr><td colSpan="7">데이터가 없습니다.</td></tr>}
-              {report.monthly_summary.map((r)=>(
-                <tr key={r.month}>
-                  <td>{r.month}</td>
-                  <td>{number(r.blog_count)}</td>
-                  <td>{number(r.instagram_count)}</td>
-                  <td>{number(r.place_receipt_count)}</td>
-                  <td>{number(r.place_blog_count)}</td>
-                  <td>{number(r.youtube_count)}</td>
-                  <td>{number(r.total_count)}</td>
+              {monthly.map((row) => (
+                <tr key={row.month || row.month_key}>
+                  <td>{row.month}</td>
+                  <td>{formatNumber(row.blog_count)}</td>
+                  <td>{formatNumber(row.instagram_count)}</td>
+                  <td>{formatNumber(row.place_receipt_count)}</td>
+                  <td>{formatNumber(row.place_blog_count)}</td>
+                  <td>{formatNumber(row.youtube_count)}</td>
+                  <td>{formatNumber(row.total_count)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </section>
 
-        <section className="grid2">
+        <section className="bottom-grid">
           <div className="panel">
             <h3>핵심 요약</h3>
-            {report.insights.length === 0 ? <p className="empty">요약 데이터가 없습니다.</p> : <ul>{report.insights.map((x,i)=><li key={i}>{x}</li>)}</ul>}
+            <ul>
+              {insights.map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
           </div>
+
           <div className="panel">
             <h3>유튜브 TOP 콘텐츠</h3>
-            {report.top_videos.length === 0 ? <p className="empty">유튜브 데이터가 없습니다.</p> : report.top_videos.map((v,i)=>(
-              <div className="video" key={i}><b>{i+1}. {v.title}</b><span>{v.channel || "-"} · 조회수 {number(v.views)}</span></div>
-            ))}
+            <div className="video-list">
+              {topVideos.map((video, index) => (
+                <div className="video" key={`${video.title}-${index}`}>
+                  <strong>
+                    {index + 1}. {video.title}
+                  </strong>
+                  <span>
+                    {video.channel || "YouTube"} · 조회수 {formatNumber(video.views)}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
+
+        {Object.keys(sourceStatus).length > 0 && (
+          <section className="panel source-status">
+            <h3>수집 상태</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>채널</th>
+                  <th>상태</th>
+                  <th>상세</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(sourceStatus).map(([key, value]) => (
+                  <tr key={key}>
+                    <td>{key}</td>
+                    <td>{value?.status || "-"}</td>
+                    <td>{value?.reason || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
       </main>
     </div>
   );
-}
-
-function Kpi({title,value}) {
-  return <div className="kpi"><span>{title}</span><strong>{number(value)}</strong></div>;
 }
