@@ -3,7 +3,9 @@ import "./styles.css";
 
 // ── [수정] API 주소 설정: 최신 Railway 주소로 업데이트 및 환경변수 우선 적용 ──
 // 이미지에서 확인된 정상 동작 주소(a7ba9)를 기본값으로 사용합니다.
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://web-production-a7ba9.up.railway.app").replace(/\/$/, "");
+const API_BASE = 
+  import.meta.env.VITE_API_BASE_URL || 
+  "https://web-production-a7ba9.up.railway.app";
 
 const PERIODS = ["최근 1개월", "최근 3개월", "최근 6개월", "최근 1년"];
 
