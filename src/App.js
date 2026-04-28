@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./styles.css";
 
-const API_BASE = "https://ai-report-api-production-718c.up.railway.app";
+const API_BASE = "https://web-production-a7ba9.up.railway.app";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
