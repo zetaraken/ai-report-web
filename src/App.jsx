@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import "./styles.css";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://web-production-2e3e7.up.railway.app";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const PERIODS = ["최근 1개월", "최근 3개월", "최근 6개월", "최근 1년"];
 
