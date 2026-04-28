@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import "./styles.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://web-production-a7ba9.up.railway.app";
 
 const PERIODS = ["최근 1개월", "최근 3개월", "최근 6개월", "최근 1년"];
 
