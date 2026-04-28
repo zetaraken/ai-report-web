@@ -30,7 +30,6 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState("monthly"); 
   const [claudeHtml, setClaudeHtml] = useState("");
-  const [pdfLoading, setPdfLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
   const [showMerchantModal, setShowMerchantModal] = useState(false);
@@ -41,12 +40,6 @@ export default function App() {
     instagram_hashtags:"", instagram_channel:"", youtube_keywords:"",
   });
   const [savingMerchant, setSavingMerchant] = useState(false);
-
-  // 헤더 메모이제이션
-  const headers = useMemo(() => ({
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  }), [token]);
 
   // ── 로그인 ──
   async function login(e) {
@@ -75,28 +68,24 @@ export default function App() {
   }
 
   // ── 가맹점 목록 ──
-  useEffect(() => {
+  const fetchMerchants = useCallback(async () => {
     if (!token) return;
-    const fetchHeaders = { 
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}` 
-    };
-
-    fetch(`${API_URL}/api/merchants`, { headers: fetchHeaders })
-      .then(r => {
-        if (r.status === 401) { logout(); throw new Error("인증 만료"); }
-        return r.json();
-      })
-      .then(data => {
-        const list = Array.isArray(data) ? data : [];
-        setMerchants(list);
-        if (list.length > 0 && !merchantId) setMerchantId(list[0].id);
-      })
-      .catch((err) => {
-        console.error(err);
-        setMsg("가맹점 목록을 불러오지 못했습니다.");
+    try {
+      const res = await fetch(`${API_URL}/api/merchants`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
-  }, [token]);
+      if (res.status === 401) { logout(); return; }
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      setMerchants(list);
+      if (list.length > 0 && !merchantId) setMerchantId(list[0].id);
+    } catch (err) {
+      console.error(err);
+      setMsg("가맹점 목록 로딩 실패");
+    }
+  }, [token, merchantId]);
+
+  useEffect(() => { fetchMerchants(); }, [fetchMerchants]);
 
   // ── 리포트 조회 ──
   const loadReport = useCallback(async (id = merchantId) => {
@@ -242,28 +231,30 @@ export default function App() {
     setShowMerchantModal(true);
   };
 
-  // ★ 수정된 가맹점 저장 로직
+  // ★ 완벽하게 수정된 가맹점 저장 로직
   async function saveMerchant() {
     const currentToken = getToken();
-    if (!currentToken) {
-      alert("로그인 세션이 만료되었습니다.");
-      return;
-    }
+    if (!currentToken) { alert("세션이 만료되었습니다."); return; }
 
     setSavingMerchant(true);
     
-    // 데이터 전처리
-    const body = {
-      ...merchantForm,
-      blog_keywords: typeof merchantForm.blog_keywords === 'string' 
-        ? merchantForm.blog_keywords.split(",").map(s=>s.trim()).filter(Boolean) 
-        : [],
-      instagram_hashtags: typeof merchantForm.instagram_hashtags === 'string'
-        ? merchantForm.instagram_hashtags.split(",").map(s=>s.trim()).filter(Boolean)
-        : [],
-      youtube_keywords: typeof merchantForm.youtube_keywords === 'string'
-        ? merchantForm.youtube_keywords.split(",").map(s=>s.trim()).filter(Boolean)
-        : [],
+    // 쉼표 기반 문자열을 깨끗한 배열로 변환하는 함수
+    const toCleanArray = (val) => {
+      if (!val) return [];
+      if (Array.isArray(val)) return val;
+      return val.split(",").map(s => s.trim()).filter(Boolean);
+    };
+
+    // 서버 Pydantic 모델에 맞게 데이터 정제
+    const payload = {
+      name: merchantForm.name.trim(),
+      region: merchantForm.region.trim(),
+      address: merchantForm.address.trim(),
+      naver_place_url: merchantForm.naver_place_url.trim(),
+      instagram_channel: merchantForm.instagram_channel.trim(),
+      blog_keywords: toCleanArray(merchantForm.blog_keywords),
+      instagram_hashtags: toCleanArray(merchantForm.instagram_hashtags),
+      youtube_keywords: toCleanArray(merchantForm.youtube_keywords),
     };
 
     try {
@@ -274,7 +265,7 @@ export default function App() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${currentToken}`
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -289,18 +280,12 @@ export default function App() {
         throw new Error(errorDetail);
       }
 
-      alert(editingMerchant ? "수정되었습니다." : "등록되었습니다.");
+      alert(editingMerchant ? "가맹점 정보가 수정되었습니다." : "새 가맹점이 등록되었습니다.");
       setShowMerchantModal(false);
-      
-      // 목록 새로고침
-      const r2 = await fetch(`${API_URL}/api/merchants`, { 
-        headers: { "Authorization": `Bearer ${currentToken}` } 
-      });
-      const updatedList = await r2.json();
-      setMerchants(Array.isArray(updatedList) ? updatedList : []);
+      fetchMerchants(); // 목록 갱신
       
     } catch(err) {
-      alert("에러: " + err.message);
+      alert("등록 오류:\n" + err.message);
     } finally {
       setSavingMerchant(false);
     }
@@ -314,10 +299,8 @@ export default function App() {
         headers: { "Authorization": `Bearer ${token}` } 
       });
       if (res.ok) {
-        const newList = merchants.filter(m => m.id !== id);
-        setMerchants(newList);
-        if (merchantId === id) setMerchantId(newList[0]?.id || "");
         alert("삭제되었습니다.");
+        fetchMerchants();
       }
     } catch { alert("삭제 실패"); }
   }
@@ -523,7 +506,7 @@ export default function App() {
                 <div key={field} className="form-group">
                   <label>{field.replace(/_/g, ' ').toUpperCase()}</label>
                   <input
-                    placeholder={field === "naver_place_url" ? "https://naver.me/..." : ""}
+                    placeholder={field === "naver_place_url" ? "https://naver.me/..." : "쉼표(,)로 구분하여 입력"}
                     value={merchantForm[field]}
                     onChange={e => setMerchantForm(f => ({...f, [field]: e.target.value}))}
                   />
