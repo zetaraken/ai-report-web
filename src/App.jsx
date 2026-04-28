@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import "./styles.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://web-production-a7ba9.up.railway.app";
+// ── [수정] API 주소 설정: 최신 Railway 주소로 업데이트 및 환경변수 우선 적용 ──
+// 이미지에서 확인된 정상 동작 주소(a7ba9)를 기본값으로 사용합니다.
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "https://web-production-a7ba9.up.railway.app").replace(/\/$/, "");
+
 const PERIODS = ["최근 1개월", "최근 3개월", "최근 6개월", "최근 1년"];
 
 function fmt(v) { return Number(v || 0).toLocaleString("ko-KR"); }
@@ -41,10 +44,13 @@ export default function App() {
   });
   const [savingMerchant, setSavingMerchant] = useState(false);
 
-  // ── 로그인 ──
+  // ── [수정] 로그인: fetch 경로 명확화 ──
   async function login(e) {
     e.preventDefault();
-    setLoginLoading(true); setLoginErr("");
+    if (!API_URL) { setLoginErr("API 주소가 설정되지 않았습니다."); return; }
+    
+    setLoginLoading(true); 
+    setLoginErr("");
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
@@ -231,21 +237,18 @@ export default function App() {
     setShowMerchantModal(true);
   };
 
-  // ★ 완벽하게 수정된 가맹점 저장 로직
   async function saveMerchant() {
     const currentToken = getToken();
     if (!currentToken) { alert("세션이 만료되었습니다."); return; }
 
     setSavingMerchant(true);
     
-    // 쉼표 기반 문자열을 깨끗한 배열로 변환하는 함수
     const toCleanArray = (val) => {
       if (!val) return [];
       if (Array.isArray(val)) return val;
       return val.split(",").map(s => s.trim()).filter(Boolean);
     };
 
-    // 서버 Pydantic 모델에 맞게 데이터 정제
     const payload = {
       name: merchantForm.name.trim(),
       region: merchantForm.region.trim(),
@@ -282,7 +285,7 @@ export default function App() {
 
       alert(editingMerchant ? "가맹점 정보가 수정되었습니다." : "새 가맹점이 등록되었습니다.");
       setShowMerchantModal(false);
-      fetchMerchants(); // 목록 갱신
+      fetchMerchants(); 
       
     } catch(err) {
       alert("등록 오류:\n" + err.message);
@@ -305,7 +308,7 @@ export default function App() {
     } catch { alert("삭제 실패"); }
   }
 
-  // ── 렌더링 ──
+  // ── 렌더링 (동일) ──
   if (!token) {
     return (
       <div className="login-wrap">
