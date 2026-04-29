@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import "./styles.css";
 
-// [수정] 환경변수 우선 적용 및 기본값 설정
-const API_BASE = import.meta.env?.VITE_API_BASE_URL || "https://web-production-a7ba9.up.railway.app";
+// 1. [수정] 환경변수 우선 적용 및 방어 코드를 포함한 상수 정의
+// import.meta.env가 Vite 환경에서 정의되지 않았을 때를 대비합니다.
+const viteApiUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_BASE_URL : null;
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || viteApiUrl || "https://web-production-a7ba9.up.railway.app").replace(/\/$/, "");
+
+// 2. [추가] "API_URL is not defined" 에러 방지를 위한 호환성 설정
+// 기존 코드 어딘가에서 API_URL을 쓰고 있다면, API_BASE 값을 할당해 줍니다.
+const API_URL = API_BASE; 
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
@@ -12,59 +18,68 @@ export default function App() {
   const [statusMsg, setStatusMsg] = useState("");
   const [report, setReport] = useState(null);
   
-  // [추가] 가맹점 등록을 위한 상태값
-  const [merchantData, setMerchantData] = useState({
-    name: "",
-    region: "",
-    address: "",
-    naver_place_url: "",
-    blog_keywords: "",
+  // 3. [추가] 가맹점 등록을 위한 상태값 관리
+  const [merchantForm, setMerchantForm] = useState({
+    name: "", region: "", address: "", naver_place_url: "", blog_keywords: "",
+    instagram_hashtags: "", instagram_channel: "", youtube_keywords: ""
   });
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      // [수정] 백엔드 main.py의 @app.post("/api/auth/login") 경로와 일치시킴
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      // 4. [핵심 수정] 로그인 경로 불일치 해결
+      // 백엔드 main.py의 @app.post("/api/auth/login") 경로와 일치시킵니다.
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         localStorage.setItem("token", data.access_token);
         setIsLoggedIn(true);
       } else {
-        const errorData = await res.json();
-        alert(`로그인 실패: ${errorData.detail || "정보를 확인하세요."}`);
+        alert(`로그인 실패: ${data.detail || "정보를 확인하세요."}`);
       }
     } catch (err) {
       alert("서버 연결 오류가 발생했습니다.");
     }
   };
 
-  // [추가] 가맹점 등록 함수 (POST /api/merchants)
+  // 5. [추가] 가맹점 등록 함수 (image_4c39f5.jpg의 POST /api/merchants 호출 해결)
   const handleAddMerchant = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
     
+    // 쉼표로 구분된 키워드를 배열로 변환하는 유틸리티
+    const toArray = (str) => str ? str.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+    // 서버 Pydantic 모델에 맞게 데이터 가공
+    const payload = {
+      ...merchantForm,
+      blog_keywords: toArray(merchantForm.blog_keywords),
+      instagram_hashtags: toArray(merchantForm.instagram_hashtags),
+      youtube_keywords: toArray(merchantForm.youtube_keywords)
+    };
+
     try {
-      const res = await fetch(`${API_BASE}/api/merchants`, {
+      const res = await fetch(`${API_URL}/api/merchants`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify(merchantData),
+        body: JSON.stringify(payload),
       });
+
+      const result = await res.json();
 
       if (res.ok) {
         alert("가맹점이 성공적으로 등록되었습니다.");
-        // 등록 후 입력창 초기화 로직 등 추가 가능
+        setShowMerchantModal(false); // 모달 닫기 로직 (필요시 추가 구현)
       } else {
-        const err = await res.json();
-        alert(`등록 오류: ${err.detail || "Not Found"}`);
+        alert(`등록 오류: ${result.detail || "Not Found"}`);
       }
     } catch (err) {
       alert("가맹점 등록 중 서버 오류가 발생했습니다.");
@@ -77,7 +92,7 @@ export default function App() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch(`${API_BASE}/api/reports`, {
+      const res = await fetch(`${API_URL}/api/reports`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -90,7 +105,7 @@ export default function App() {
       const { job_id } = await res.json();
 
       const timer = setInterval(async () => {
-        const statusRes = await fetch(`${API_BASE}/api/crawl-jobs/${job_id}`, {
+        const statusRes = await fetch(`${API_URL}/api/crawl-jobs/${job_id}`, {
           headers: { "Authorization": `Bearer ${token}` },
         });
         const job = await statusRes.json();
@@ -135,19 +150,20 @@ export default function App() {
       </header>
       
       <main style={{ display: "flex", gap: "20px" }}>
-        {/* 가맹점 등록 섹션 */}
-        <div className="panel" style={{ flex: 1 }}>
+        {/* 6. [추가] 가맹점 등록 섹션 */}
+        <div className="panel" style={{ flex: 1, padding: "20px" }}>
           <h3>신규 가맹점 등록</h3>
-          <form onSubmit={handleAddMerchant}>
-            <input placeholder="가맹점명" onChange={e => setMerchantData({...merchantData, name: e.target.value})} required />
-            <input placeholder="지역" onChange={e => setMerchantData({...merchantData, region: e.target.value})} required />
-            <input placeholder="주소" onChange={e => setMerchantData({...merchantData, address: e.target.value})} required />
+          <form onSubmit={handleAddMerchant} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <input placeholder="가맹점명" onChange={e => setMerchantForm({...merchantForm, name: e.target.value})} required />
+            <input placeholder="지역" onChange={e => setMerchantForm({...merchantForm, region: e.target.value})} required />
+            <input placeholder="주소" onChange={e => setMerchantForm({...merchantForm, address: e.target.value})} required />
+            <input placeholder="네이버 플레이스 URL" onChange={e => setMerchantForm({...merchantForm, naver_place_url: e.target.value})} />
             <button type="submit" className="primary">저장</button>
           </form>
         </div>
 
         {/* 리포트 생성 섹션 */}
-        <div className="panel" style={{ flex: 1 }}>
+        <div className="panel" style={{ flex: 1, padding: "20px" }}>
           <h3>리포트 생성</h3>
           <button onClick={() => startCrawl("98도씨국밥 보라매점")} disabled={loading} className="primary">
             {loading ? statusMsg : "98도씨국밥 수집 시작"}
