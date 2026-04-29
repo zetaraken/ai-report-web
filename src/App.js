@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./styles.css";
 
-const API_BASE = "https://web-production-a7ba9.up.railway.app";
+// [수정] 환경변수 우선 적용 및 기본값 설정
+const API_BASE = import.meta.env?.VITE_API_BASE_URL || "https://web-production-a7ba9.up.railway.app";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
@@ -10,20 +11,63 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const [report, setReport] = useState(null);
+  
+  // [추가] 가맹점 등록을 위한 상태값
+  const [merchantData, setMerchantData] = useState({
+    name: "",
+    region: "",
+    address: "",
+    naver_place_url: "",
+    blog_keywords: "",
+  });
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const res = await fetch(`${API_BASE}/api/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem("token", data.access_token);
-      setIsLoggedIn(true);
-    } else {
-      alert("로그인 실패");
+    try {
+      // [수정] 백엔드 main.py의 @app.post("/api/auth/login") 경로와 일치시킴
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem("token", data.access_token);
+        setIsLoggedIn(true);
+      } else {
+        const errorData = await res.json();
+        alert(`로그인 실패: ${errorData.detail || "정보를 확인하세요."}`);
+      }
+    } catch (err) {
+      alert("서버 연결 오류가 발생했습니다.");
+    }
+  };
+
+  // [추가] 가맹점 등록 함수 (POST /api/merchants)
+  const handleAddMerchant = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    
+    try {
+      const res = await fetch(`${API_BASE}/api/merchants`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(merchantData),
+      });
+
+      if (res.ok) {
+        alert("가맹점이 성공적으로 등록되었습니다.");
+        // 등록 후 입력창 초기화 로직 등 추가 가능
+      } else {
+        const err = await res.json();
+        alert(`등록 오류: ${err.detail || "Not Found"}`);
+      }
+    } catch (err) {
+      alert("가맹점 등록 중 서버 오류가 발생했습니다.");
     }
   };
 
@@ -41,9 +85,10 @@ export default function App() {
         },
         body: JSON.stringify({ merchant_id: merchantId }),
       });
+      
+      if (!res.ok) throw new Error("요청 실패");
       const { job_id } = await res.json();
 
-      // 완료될 때까지 3초마다 체크 (Polling)
       const timer = setInterval(async () => {
         const statusRes = await fetch(`${API_BASE}/api/crawl-jobs/${job_id}`, {
           headers: { "Authorization": `Bearer ${token}` },
@@ -85,22 +130,35 @@ export default function App() {
   return (
     <div className="container">
       <header>
-        <h2>경영진단 리포트 생성</h2>
+        <h2>경영진단 시스템</h2>
         <button onClick={() => { localStorage.removeItem("token"); setIsLoggedIn(false); }}>로그아웃</button>
       </header>
-      <main>
-        <div className="panel">
-          <button onClick={() => startCrawl("98도씨국밥 보라매점")} disabled={loading} className="primary">
-            {loading ? statusMsg : "리포트 생성 시작"}
-          </button>
+      
+      <main style={{ display: "flex", gap: "20px" }}>
+        {/* 가맹점 등록 섹션 */}
+        <div className="panel" style={{ flex: 1 }}>
+          <h3>신규 가맹점 등록</h3>
+          <form onSubmit={handleAddMerchant}>
+            <input placeholder="가맹점명" onChange={e => setMerchantData({...merchantData, name: e.target.value})} required />
+            <input placeholder="지역" onChange={e => setMerchantData({...merchantData, region: e.target.value})} required />
+            <input placeholder="주소" onChange={e => setMerchantData({...merchantData, address: e.target.value})} required />
+            <button type="submit" className="primary">저장</button>
+          </form>
         </div>
-        {report && (
-          <div className="panel report-view">
-            <h3>{report.merchant_name} 분석 결과</h3>
-            <p>총 언급량: {report.summary.total_mentions}건</p>
-            {/* 추가 리포트 데이터 렌더링 */}
-          </div>
-        )}
+
+        {/* 리포트 생성 섹션 */}
+        <div className="panel" style={{ flex: 1 }}>
+          <h3>리포트 생성</h3>
+          <button onClick={() => startCrawl("98도씨국밥 보라매점")} disabled={loading} className="primary">
+            {loading ? statusMsg : "98도씨국밥 수집 시작"}
+          </button>
+          {report && (
+            <div className="report-view" style={{ marginTop: "20px" }}>
+              <h4>{report.merchant_name} 결과</h4>
+              <p>총 언급량: {report.summary.total_mentions}건</p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
