@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./styles.css";
 
-// [핵심 수정] 모든 변수명을 API_URL로 통일하여 ReferenceError 방지
+// [중요] ReferenceError 방지를 위해 최상단에 확실히 정의합니다.
+// 만약 Vercel 환경변수를 쓴다면 import.meta.env.VITE_API_BASE_URL를 사용하세요.
 const API_URL = "https://web-production-a7ba9.up.railway.app";
 
 export default function App() {
@@ -12,16 +13,12 @@ export default function App() {
   const [statusMsg, setStatusMsg] = useState("");
   const [report, setReport] = useState(null);
 
-  // 가맹점 등록을 위한 상태값
-  const [merchantData, setMerchantData] = useState({
-    name: "", region: "", address: ""
-  });
-
   const handleLogin = async (e) => {
     e.preventDefault();
-    console.log("로그인 시도 중..."); // 실행 확인용 로그
+    console.log("로그인 시도 중, 호출 주소:", `${API_URL}/api/auth/login`); // 디버깅 로그 추가
+    
     try {
-      // [수정] 경로를 백엔드와 일치시킴 (/api/auth/login)
+      // 변수명을 반드시 API_URL로 사용해야 합니다.
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,12 +30,12 @@ export default function App() {
         localStorage.setItem("token", data.access_token);
         setIsLoggedIn(true);
       } else {
-        const errData = await res.json();
-        alert(`로그인 실패: ${errData.detail || "정보를 확인하세요."}`);
+        const errorData = await res.json();
+        alert(`로그인 실패: ${errorData.detail || "정보를 확인하세요."}`);
       }
     } catch (err) {
-      console.error("로그인 에러:", err);
-      alert("서버와 통신할 수 없습니다.");
+      console.error("통신 에러 발생:", err);
+      alert("서버 연결 오류");
     }
   };
 
@@ -56,6 +53,8 @@ export default function App() {
         },
         body: JSON.stringify({ merchant_id: merchantId }),
       });
+      
+      if (!res.ok) throw new Error("요청 실패");
       const { job_id } = await res.json();
 
       const timer = setInterval(async () => {
