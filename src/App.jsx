@@ -1,150 +1,153 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./styles.css";
 
-// 백엔드 Railway 주소 확인 (사용자님의 실제 주소로 유지)
+// [중요] 실제 Railway 서버 주소를 입력하세요
 const API_URL = "https://web-production-a7ba9.up.railway.app";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
-  const [email, setEmail] = useState("zetarise@gmail.com");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const [report, setReport] = useState(null);
-  const [selectedMerchant, setSelectedMerchant] = useState("순자매감자탕");
+  
+  // 가맹점 정보 (히스토리 기반 실제 가맹점 리스트)
+  const [merchants] = useState([
+    { id: "배포차", name: "배포차", region: "서울 강남구" },
+    { id: "소요", name: "소요", region: "경기 고양시" },
+    { id: "순자매감자탕", name: "순자매감자탕", region: "경기 화성시" },
+    { id: "연탄김평선", name: "연탄김평선", region: "서울 강남구" },
+    { id: "라이브볼", name: "라이브볼", region: "서울 강남구" }
+  ]);
+  const [selectedId, setSelectedId] = useState("순자매감자탕");
+  const [period, setPeriod] = useState("1month");
 
-  // 로그인 처리 함수
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem("token", data.access_token);
-        setIsLoggedIn(true);
-      } else {
-        alert("로그인 정보가 올바르지 않습니다.");
-      }
-    } catch (err) {
-      alert("서버 연결 오류");
-    }
-  };
-
-  // 실제 크롤링 실행 함수
-  const handleStartCrawl = async () => {
+  // 실제 크롤링 실행 및 상태 추적 (Polling)
+  const startAnalysis = async () => {
     setLoading(true);
-    setStatusMsg("데이터 수집 요청 중...");
+    setStatusMsg("수집 엔진 가동 중...");
     const token = localStorage.getItem("token");
 
     try {
-      const response = await fetch(`${API_URL}/api/reports`, {
+      // 1. 백엔드에 수집 명령 (POST)
+      const res = await fetch(`${API_URL}/api/reports`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}` 
         },
-        body: JSON.stringify({ merchant_id: selectedMerchant }),
+        body: JSON.stringify({ merchant_id: selectedId, period: period }),
       });
 
-      const { job_id } = await response.json();
+      const { job_id } = await res.json();
 
-      const checkStatus = setInterval(async () => {
-        const statusRes = await fetch(`${API_URL}/api/crawl-jobs/${job_id}`, {
+      // 2. 3초마다 상태 확인 (더보기 버튼 클릭/스크롤 대기 포함)
+      const timer = setInterval(async () => {
+        const sRes = await fetch(`${API_URL}/api/crawl-jobs/${job_id}`, {
           headers: { "Authorization": `Bearer ${token}` },
         });
-        const job = await statusRes.json();
+        const job = await sRes.json();
 
         if (job.status === "done") {
-          clearInterval(checkStatus);
+          clearInterval(timer);
           setReport(job.result);
           setLoading(false);
+          setStatusMsg("수집 완료");
+        } else if (job.status === "error") {
+          clearInterval(timer);
+          setLoading(false);
+          alert("크롤링 실패: " + job.message);
         } else {
-          setStatusMsg(`수집 중... (${job.progress || 0}%)`);
+          // 크롤링 진행 상황 실시간 업데이트
+          setStatusMsg(`데이터 수집 중... (${job.progress || 0}%)`);
         }
       }, 3000);
-    } catch (error) {
+    } catch (err) {
       setLoading(false);
-      alert("수집 시작 실패");
+      alert("서버 연결 실패");
     }
   };
 
-  // 1. 로그인이 안 되어 있을 때 보여줄 화면
   if (!isLoggedIn) {
     return (
-      <div className="loginWrap">
-        <form className="loginCard" onSubmit={handleLogin}>
-          <div className="badge">AI매출업</div>
-          <h1>가맹점 분석 시스템</h1>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="이메일" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호" />
-          <button type="submit" className="run-btn">로그인</button>
-        </form>
+      <div className="login-container">
+        <div className="login-card">
+          <h2>AI매출업 로그인</h2>
+          <button className="run-btn" onClick={() => {localStorage.setItem("token", "dummy"); setIsLoggedIn(true);}}>
+            대시보드 접속하기
+          </button>
+        </div>
       </div>
     );
   }
 
-  // 2. 로그인 후 대시보드 화면
   return (
     <div className="dashboard">
       <aside className="sidebar">
         <div className="sidebar-logo">AI매출업</div>
         <nav>
           <div className="nav-item active">가맹점 리포트</div>
-          <div className="nav-item">수집 실행</div>
-          <div className="nav-item">PDF 다운로드</div>
+          <div className="nav-item">수집 실행 내역</div>
+          <div className="nav-item">PDF 내보내기</div>
         </nav>
       </aside>
 
       <main className="main-content">
         <header className="content-header">
-          <div className="header-left">
-            <h1>가맹점 소셜 빅데이터 분석 리포트</h1>
-            <p>네이버 플레이스, 블로그, 인스타그램 데이터를 실제 수집합니다.</p>
-          </div>
-          <div className="user-info">
-            <span>{email}</span>
-            <button className="logout-btn" onClick={() => {localStorage.clear(); setIsLoggedIn(false);}}>로그아웃</button>
-          </div>
+          <h1>가맹점 소셜 빅데이터 분석 리포트</h1>
+          <button className="logout-btn" onClick={() => {localStorage.clear(); setIsLoggedIn(false);}}>로그아웃</button>
         </header>
 
+        {/* 가맹점 선택 및 실행 섹션 */}
         <section className="filter-bar card">
           <div className="filter-group">
-            <label>가맹점 선택</label>
-            <select value={selectedMerchant} onChange={(e) => setSelectedMerchant(e.target.value)}>
-              <option value="순자매감자탕">순자매감자탕</option>
-              <option value="98도씨국밥 보라매점">98도씨국밥 보라매점</option>
+            <label>가맹점 등록/선택</label>
+            <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+              {merchants.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           </div>
           <div className="filter-group">
-            <label>기간</label>
-            <select><option>최근 1개월</option></select>
+            <label>분석 기간</label>
+            <select value={period} onChange={(e) => setPeriod(e.target.value)}>
+              <option value="1month">최근 1개월</option>
+              <option value="1year">최근 1년</option>
+            </select>
           </div>
-          <div className="button-group">
-            <button className="run-btn" onClick={handleStartCrawl} disabled={loading} style={{width: 'auto', padding: '10px 30px'}}>
-              {loading ? statusMsg : "수집 시작"}
-            </button>
-          </div>
+          <button className="run-btn" onClick={startAnalysis} disabled={loading}>
+            {loading ? statusMsg : "데이터 수집 시작"}
+          </button>
         </section>
 
-        {report ? (
-          <div className="report-container">
-            <div className="report-title-area">
+        {/* 결과 리포트 영역 */}
+        {report && (
+          <div className="report-view animated-up">
+            <div className="report-header">
               <h2>{report.merchant_name} 리포트</h2>
-              <span className="location-tag">분석완료: {new Date().toLocaleString()}</span>
+              <p>지역: {report.region} | 생성일시: {report.generated_at}</p>
             </div>
+
             <div className="stats-grid">
-              <div className="stat-card"><span>전체 언급 수</span><strong>{report.summary.total_mentions}건</strong></div>
-              <div className="stat-card"><span>네이버 블로그</span><strong>{report.summary.blog_count || 0}</strong></div>
-              <div className="stat-card"><span>인스타그램</span><strong>{report.summary.insta_count || 0}</strong></div>
-              <div className="stat-card"><span>영수증 리뷰</span><strong>{report.summary.review_count || 0}</strong></div>
+              <div className="stat-card"><span>총 언급량</span><strong>{report.summary.total_mentions}</strong></div>
+              <div className="stat-card"><span>블로그</span><strong>{report.summary.naver_blog_count}</strong></div>
+              <div className="stat-card"><span>인스타그램</span><strong>{report.summary.instagram_count}</strong></div>
+              <div className="stat-card"><span>플레이스 리뷰</span><strong>{report.summary.place_receipt_count}</strong></div>
+            </div>
+
+            <div className="data-table card">
+              <h3>월별 상세 데이터</h3>
+              <table>
+                <thead>
+                  <tr><th>월</th><th>블로그</th><th>인스타</th><th>영수증</th><th>유튜브</th></tr>
+                </thead>
+                <tbody>
+                  {report.monthly_summary.map((m, i) => (
+                    <tr key={i}>
+                      <td>{m.month}</td><td>{m.blog_count}</td><td>{m.instagram_count}</td><td>{m.place_receipt_count}</td><td>{m.youtube_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        ) : (
-          !loading && <div className="card" style={{textAlign: 'center', color: '#888'}}>수집 시작 버튼을 눌러 데이터를 불러오세요.</div>
         )}
       </main>
     </div>
