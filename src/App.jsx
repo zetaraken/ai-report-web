@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-// 기획자님의 실제 Railway 주소를 적용했습니다.
+// 기획자님의 Railway 주소
 const API_URL = "https://web-production-a7ba9.up.railway.app"; 
 
 export default function App() {
@@ -8,9 +8,14 @@ export default function App() {
   const [merchants, setMerchants] = useState([]);
   const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  
+  // 매장 등록을 위한 입력 상태
+  const [newMerchant, setNewMerchant] = useState({
+    name: "", region: "", address: "", naver_place_url: "", blog_keywords: ""
+  });
 
-  // 1. 서비스 접속 시 자동 로그인 (zetarise@gmail.com / 4858)
+  // 1. 자동 로그인
   useEffect(() => {
     const autoLogin = async () => {
       try {
@@ -19,130 +24,134 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: "zetarise@gmail.com", password: "4858" })
         });
-        if (!res.ok) throw new Error("로그인 실패");
         const data = await res.json();
         setToken(data.access_token);
         fetchMerchants(data.access_token);
-      } catch (e) {
-        console.error("연결 오류: 백엔드 서버 상태를 확인하세요.");
-      }
+      } catch (e) { console.error("로그인 실패"); }
     };
     autoLogin();
   }, []);
 
-  // 2. 가맹점 목록 불러오기
+  // 2. 가맹점 목록 조회
   const fetchMerchants = async (authToken) => {
-    try {
-      const res = await fetch(`${API_URL}/api/merchants`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-      const data = await res.json();
-      setMerchants(data);
-    } catch (e) {
-      console.error("목록 불러오기 실패");
-    }
+    const res = await fetch(`${API_URL}/api/merchants`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    setMerchants(data);
   };
 
-  // 3. 리포트 생성 및 수집 (5초 시뮬레이션)
-  const startCrawl = async (merchant) => {
-    if (!token) return;
-    setIsLoading(true);
-    setSelectedMerchant(null);
-    setStatusMessage("데이터를 수집하고 있습니다...");
-
+  // 3. 신규 매장 등록 (서버 전송)
+  const handleAddMerchant = async () => {
+    if (!newMerchant.name) return alert("매장 이름을 입력해주세요.");
     try {
-      const res = await fetch(`${API_URL}/api/reports`, {
+      const res = await fetch(`${API_URL}/api/merchants`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}` 
         },
+        body: JSON.stringify(newMerchant)
+      });
+      if (res.ok) {
+        alert("매장이 등록되었습니다!");
+        setShowModal(false);
+        setNewMerchant({ name: "", region: "", address: "", naver_place_url: "", blog_keywords: "" });
+        fetchMerchants(token); // 목록 새로고침
+      }
+    } catch (e) { alert("등록 실패"); }
+  };
+
+  // 4. 리포트 생성 요청
+  const startCrawl = async (merchant) => {
+    setIsLoading(true);
+    setSelectedMerchant(null);
+    try {
+      const res = await fetch(`${API_URL}/api/reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ merchant_id: merchant.id })
       });
       const { job_id } = await res.json();
-
-      // 작업 완료 여부를 확인하기 위해 5초 대기
       setTimeout(async () => {
         const statusRes = await fetch(`${API_URL}/api/crawl-jobs/${job_id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const jobResult = await statusRes.json();
-        
-        if (jobResult.status === "done") {
-          setSelectedMerchant(jobResult.result);
-        } else {
-          setStatusMessage("수집 중 오류가 발생했습니다.");
-        }
+        if (jobResult.status === "done") setSelectedMerchant(jobResult.result);
         setIsLoading(false);
       }, 5000);
-    } catch (e) {
-      setIsLoading(false);
-      setStatusMessage("서버 연결에 실패했습니다.");
-    }
+    } catch (e) { setIsLoading(false); }
   };
 
   return (
     <div style={styles.container}>
       <header style={styles.header}>
-        <div style={styles.logo}>AI매출업</div>
-        <div style={styles.status}>{token ? "● 서버 연결됨" : "○ 연결 중..."}</div>
+        <div style={styles.logo}>AI매출업 관리자</div>
+        <button onClick={() => setShowModal(true)} style={styles.btnAdd}>+ 새 매장 등록</button>
       </header>
 
       <div style={styles.content}>
         <aside style={styles.sidebar}>
-          <h3 style={styles.sideTitle}>가맹점 관리</h3>
-          {merchants.length > 0 ? (
-            merchants.map(m => (
-              <div key={m.id} onClick={() => !isLoading && startCrawl(m)} style={styles.merchantItem}>
-                📍 {m.name}
-              </div>
-            ))
-          ) : (
-            <p style={styles.emptyText}>등록된 가맹점이 없습니다.<br/>(API에서 가맹점을 추가해주세요)</p>
-          )}
+          <h3 style={{color:'#444', fontSize:'12px'}}>가맹점 리스트</h3>
+          {merchants.map(m => (
+            <div key={m.id} onClick={() => !isLoading && startCrawl(m)} style={styles.merchantItem}>
+              {m.name} <span style={{fontSize:'10px', color:'#555'}}>{m.region}</span>
+            </div>
+          ))}
         </aside>
 
         <main style={styles.main}>
-          {isLoading ? (
-            <div style={styles.loadingBox}>
-              <div style={styles.spinner}></div>
-              <p>{statusMessage}</p>
-            </div>
-          ) : selectedMerchant ? (
-            <div style={styles.reportCard}>
-              <h2 style={styles.merchantName}>{selectedMerchant.merchant_name} 분석 결과</h2>
-              <div style={styles.statsGrid}>
-                <div style={styles.statBox}><span>네이버 블로그</span><strong>{selectedMerchant.stats.naver}</strong></div>
-                <div style={styles.statBox}><span>인스타그램</span><strong>{selectedMerchant.stats.insta}</strong></div>
-                <div style={styles.statBox}><span>영수증 리뷰</span><strong>{selectedMerchant.stats.receipt}</strong></div>
-                <div style={styles.statBox}><span>유튜브 언급</span><strong>{selectedMerchant.stats.youtube}</strong></div>
-              </div>
-            </div>
-          ) : (
-            <div style={styles.emptyMain}>왼쪽 리스트에서 매장을 선택하면<br/>실시간 평판 분석 리포트가 생성됩니다.</div>
-          )}
+          {isLoading ? <div style={styles.loading}>데이터 수집 중...</div> : 
+           selectedMerchant ? (
+             <div style={styles.report}>
+               <h2>{selectedMerchant.merchant_name} 리포트</h2>
+               <div style={styles.grid}>
+                 <div style={styles.card}>네이버 블로그: {selectedMerchant.stats.naver}</div>
+                 <div style={styles.card}>인스타그램: {selectedMerchant.stats.insta}</div>
+               </div>
+             </div>
+           ) : <div style={styles.empty}>매장을 선택하거나 새로 등록해주세요.</div>}
         </main>
       </div>
+
+      {/* 매장 등록 모달 */}
+      {showModal && (
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <h3 style={{marginTop:0}}>신규 매장 등록</h3>
+            <input style={styles.input} placeholder="매장명 (필수)" onChange={e => setNewMerchant({...newMerchant, name: e.target.value})} />
+            <input style={styles.input} placeholder="지역 (예: 서울 신사)" onChange={e => setNewMerchant({...newMerchant, region: e.target.value})} />
+            <input style={styles.input} placeholder="네이버 플레이스 URL" onChange={e => setNewMerchant({...newMerchant, naver_place_url: e.target.value})} />
+            <input style={styles.input} placeholder="블로그 검색 키워드" onChange={e => setNewMerchant({...newMerchant, blog_keywords: e.target.value})} />
+            <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
+              <button onClick={handleAddMerchant} style={styles.btnSave}>등록하기</button>
+              <button onClick={() => setShowModal(false)} style={styles.btnCancel}>취소</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 const styles = {
   container: { background: '#000', color: '#fff', minHeight: '100vh', fontFamily: 'sans-serif' },
-  header: { display: 'flex', justifyContent: 'space-between', padding: '20px 40px', borderBottom: '1px solid #1a1a1a' },
-  logo: { fontSize: '20px', fontWeight: 'bold', color: '#00e5ff' },
-  status: { fontSize: '12px', color: '#666' },
-  content: { display: 'flex', padding: '40px' },
-  sidebar: { width: '250px', borderRight: '1px solid #1a1a1a', paddingRight: '20px' },
-  sideTitle: { fontSize: '14px', color: '#444', marginBottom: '20px' },
-  merchantItem: { padding: '15px', background: '#080808', marginBottom: '10px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #111', transition: '0.3s' },
-  emptyText: { color: '#333', fontSize: '13px', lineHeight: '1.6' },
-  main: { flex: 1, paddingLeft: '60px' },
-  loadingBox: { textAlign: 'center', marginTop: '100px', color: '#00e5ff' },
-  spinner: { width: '40px', height: '40px', border: '3px solid #00e5ff22', borderTop: '3px solid #00e5ff', borderRadius: '50%', margin: '0 auto 20px', animation: 'spin 1s linear infinite' },
-  reportCard: { background: '#080808', padding: '40px', borderRadius: '20px', border: '1px solid #1a1a1a' },
-  merchantName: { fontSize: '28px', marginBottom: '30px', color: '#00e5ff' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' },
-  statBox: { background: '#000', padding: '20px', borderRadius: '12px', border: '1px solid #111', display: 'flex', flexDirection: 'column' },
-  emptyMain: { textAlign: 'center', marginTop: '150px', color: '#222', fontSize: '18px', lineHeight: '1.6' }
+  header: { display: 'flex', justifyContent: 'space-between', padding: '20px 40px', borderBottom: '1px solid #1a1a1a', alignItems: 'center' },
+  logo: { color: '#00e5ff', fontWeight: 'bold', fontSize: '18px' },
+  btnAdd: { background: '#00e5ff', border: 'none', padding: '10px 20px', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
+  content: { display: 'flex', padding: '20px' },
+  sidebar: { width: '250px', padding: '20px', borderRight: '1px solid #111' },
+  merchantItem: { padding: '15px', background: '#0a0a0a', marginBottom: '10px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #1a1a1a' },
+  main: { flex: 1, padding: '40px' },
+  report: { background: '#0a0a0a', padding: '30px', borderRadius: '15px' },
+  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' },
+  card: { background: '#000', padding: '20px', border: '1px solid #222', borderRadius: '10px' },
+  overlay: { position: 'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.8)', display:'flex', justifyContent:'center', alignItems:'center' },
+  modal: { background: '#111', padding: '30px', borderRadius: '15px', width: '400px', border: '1px solid #333' },
+  input: { width: '100%', padding: '12px', marginBottom: '10px', background: '#000', border: '1px solid #222', color: '#fff', borderRadius: '5px', boxSizing: 'border-box' },
+  btnSave: { flex: 1, background: '#00e5ff', border: 'none', padding: '12px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' },
+  btnCancel: { background: 'none', border: 'none', color: '#666', cursor: 'pointer' },
+  loading: { color: '#00e5ff', textAlign: 'center', marginTop: '100px' },
+  empty: { color: '#333', textAlign: 'center', marginTop: '100px' }
 };
