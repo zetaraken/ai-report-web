@@ -1,85 +1,75 @@
-/* 기본 배경 설정 */
-body, html {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  background-color: #000000; /* 다크 배경 */
-  font-family: 'Pretendard', sans-serif;
-  color: #ffffff;
-}
+import React, { useState } from "react";
+import "./styles.css";
 
-/* 로그인 컨테이너 (화면 정중앙 배치) */
-.auth-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+export default function App() {
+  const [activeTab, setActiveTab] = useState("월별 집계");
 
-/* 로그인 박스 (카드 형태) */
-.login-box {
-  background-color: #1a1c1e;
-  padding: 40px;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 400px;
-  text-align: left; /* 텍스트는 왼쪽 정렬 */
-}
+  return (
+    <div className="container">
+      {/* 왼쪽 사이드바 */}
+      <aside className="sidebar">
+        <div className="logo-section">
+          <div className="logo-badge">AI매출업</div>
+          <p className="logo-text">가맹점 분석 시스템</p>
+        </div>
+        <nav className="nav-menu">
+          <div className="nav-title">가맹점 선택</div>
+          <div className="nav-empty">등록된 가맹점이 없습니다.</div>
+        </nav>
+      </aside>
 
-/* AI매출업 배지 */
-.badge {
-  display: inline-block;
-  background-color: #00e5ff;
-  color: #000000;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 12px;
-  margin-bottom: 20px;
-}
+      {/* 오른쪽 메인 콘텐츠 */}
+      <main className="main-content">
+        <header className="header">
+          <h2>가맹점 선택</h2>
+          <div className="header-buttons">
+            <select className="select-period">
+              <option>최근 6개월</option>
+            </select>
+            <button className="btn-rocket">🚀 수집 시작</button>
+            <button className="btn-excel">📊 엑셀 다운로드 ▾</button>
+          </div>
+        </header>
 
-/* 제목 및 부제목 */
-h1 { font-size: 24px; margin: 0 0 8px 0; }
-.subtitle { color: #888; font-size: 14px; margin-bottom: 30px; }
+        {/* 지표 요약 카드 */}
+        <section className="stats-grid">
+          <div className="stat-item">총 언급 수 <strong>0</strong>건</div>
+          <div className="stat-item">영수증 리뷰 <strong>0</strong>건</div>
+          <div className="stat-item">플레이스 블로그 <strong>0</strong>건</div>
+          <div className="stat-item">네이버 블로그 <strong>0</strong>건</div>
+          <div className="stat-item">인스타그램 <strong>0</strong>건</div>
+          <div className="stat-item">유튜브 조회수 <strong>0</strong>회</div>
+        </section>
 
-/* 입력 필드 그룹 (라벨과 인풋 겹침 방지) */
-.form-group {
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column; /* 라벨과 인풋을 세로로 나열 */
-}
+        {/* 탭 메뉴 */}
+        <div className="tabs">
+          <button className="tab active">📊 월별 집계</button>
+          <button className="tab">📅 일별 집계</button>
+          <button className="tab">💬 AI 분석 리포트</button>
+          <button className="tab">🤖 ChatGPT 연동</button>
+        </div>
 
-.form-group label {
-  font-size: 14px;
-  margin-bottom: 8px;
-  color: #ccc;
-}
-
-.form-group input {
-  background-color: #262a2d;
-  border: 1px solid #333;
-  padding: 12px;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 16px;
-  outline: none;
-}
-
-.form-group input:focus {
-  border-color: #00e5ff;
-}
-
-/* 로그인 버튼 */
-.login-btn {
-  width: 100%;
-  padding: 14px;
-  background-color: #00e5ff;
-  border: none;
-  border-radius: 8px;
-  color: #000;
-  font-weight: bold;
-  font-size: 16px;
-  cursor: pointer;
-  margin-top: 10px;
+        {/* 데이터 테이블 */}
+        <div className="table-wrapper">
+          <h3>월별 채널별 집계</h3>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>월</th>
+                <th>네이버 블로그</th>
+                <th>인스타그램</th>
+                <th>영수증 리뷰</th>
+                <th>플레이스 블로그</th>
+                <th>유튜브</th>
+                <th>합계</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colSpan="7">데이터 없음</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  );
 }
