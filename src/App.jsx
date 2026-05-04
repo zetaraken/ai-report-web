@@ -3,19 +3,31 @@ import "./styles.css";
 
 export default function App() {
   const [showModal, setShowModal] = useState(false);
-  const [merchants, setMerchants] = useState([]);
+  const [merchants, setMerchants] = useState([
+    {
+      id: 1,
+      name: "배포차",
+      region: "서울",
+      address: "서울 강남구 도산대로1길 16 지상1, 2층",
+      placeUrl: "https://naver.me/xv6tlDW3",
+      blogKeywords: "신사역 배포차",
+      instaHashtags: "배포차",
+      instaChannel: "https://www.instagram.com/bae_po_cha?igsh=MWNhazVidW9hcGZjaQ%3D%3D&utm_source=qr",
+      youtubeKeywords: "신사역 배포차"
+    }
+  ]);
   const [selectedMerchant, setSelectedMerchant] = useState(null);
 
-  // 이미지(image_b7ae14.jpg) 기반 기본 데이터
+  // 모달 입력 데이터 상태
   const [formData, setFormData] = useState({
-    name: "배포차",
-    region: "서울",
-    address: "서울 강남구 도산대로1길 16 지상1, 2층",
-    placeUrl: "https://naver.me/xv6tlDW3",
-    blogKeywords: "신사역 배포차",
-    instaHashtags: "배포차",
-    instaChannel: "https://www.instagram.com/bae_po_cha?igsh=MWNhazVidW9hcGZjaQ%3D%3D&utm_source=qr",
-    youtubeKeywords: "신사역 배포차"
+    name: "",
+    region: "",
+    address: "",
+    placeUrl: "",
+    blogKeywords: "",
+    instaHashtags: "",
+    instaChannel: "",
+    youtubeKeywords: ""
   });
 
   const handleSave = () => {
@@ -24,12 +36,14 @@ export default function App() {
       setMerchants([...merchants, newMerchant]);
       setSelectedMerchant(newMerchant);
       setShowModal(false);
+      // 폼 초기화
+      setFormData({ name: "", region: "", address: "", placeUrl: "", blogKeywords: "", instaHashtags: "", instaChannel: "", youtubeKeywords: "" });
     }
   };
 
   return (
     <div className="container">
-      {/* 1. 왼쪽 사이드바 */}
+      {/* 왼쪽 사이드바 */}
       <aside className="sidebar">
         <div className="logo-section">
           <div className="logo-badge">AI매출업</div>
@@ -55,26 +69,42 @@ export default function App() {
         </nav>
       </aside>
 
-      {/* 2. 오른쪽 메인 대시보드 */}
+      {/* 오른쪽 메인 콘텐츠 */}
       <main className="main-content">
         <header className="header">
           <h2>{selectedMerchant ? selectedMerchant.name : "가맹점 선택"}</h2>
           <div className="header-buttons">
-            <button className="btn-rocket" onClick={() => setShowModal(true)}>➕ 가맹점 등록</button>
+            <button className="btn-add" onClick={() => setShowModal(true)}>➕ 가맹점 등록</button>
             <button className="btn-excel">📊 엑셀 다운로드 ▾</button>
           </div>
         </header>
 
+        {/* 대시보드 지표 */}
         <section className="stats-grid">
           <div className="stat-item">
             총 언급 수 <strong>{selectedMerchant ? '124' : '0'}</strong>건
           </div>
+          <div className="stat-item">영수증 리뷰 <strong>0</strong>건</div>
+          <div className="stat-item">플레이스 블로그 <strong>0</strong>건</div>
+          <div className="stat-item">네이버 블로그 <strong>0</strong>건</div>
+          <div className="stat-item">인스타그램 <strong>0</strong>건</div>
+          <div className="stat-item">유튜브 조회수 <strong>0</strong>회</div>
         </section>
 
-        {/* 탭 및 테이블 영역은 이전과 동일하게 유지 */}
+        <div className="tabs">
+          <button className="tab active">월별 집계</button>
+          <button className="tab">일별 집계</button>
+          <button className="tab">AI 분석 리포트</button>
+        </div>
+
+        <div className="table-wrapper">
+          <p style={{color: '#888', textAlign: 'center', padding: '40px'}}>
+            {selectedMerchant ? `${selectedMerchant.name}의 데이터를 분석 중입니다...` : "가맹점을 선택하거나 등록해 주세요."}
+          </p>
+        </div>
       </main>
 
-      {/* 3. 신규 가맹점 등록 모달 */}
+      {/* 가맹점 등록 모달 */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -87,6 +117,7 @@ export default function App() {
                   <label>{key.toUpperCase()}</label>
                   <input 
                     type="text" 
+                    placeholder={`${key} 입력`}
                     value={formData[key]} 
                     onChange={(e) => setFormData({...formData, [key]: e.target.value})}
                   />
