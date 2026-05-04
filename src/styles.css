@@ -1,37 +1,172 @@
-/* 모달 배경 (어둡게 처리) */
+/* 기본 초기화 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #000;
+  color: #fff;
+  font-family: 'Pretendard', -apple-system, sans-serif;
+}
+
+/* 전체 레이아웃 컨테이너 */
+.container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* 사이드바 스타일 */
+.sidebar {
+  width: 260px;
+  background-color: #111;
+  border-right: 1px solid #222;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-badge {
+  background-color: #00e5ff;
+  color: #000;
+  display: inline-block;
+  padding: 4px 10px;
+  font-weight: 800;
+  font-size: 14px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.logo-text {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 40px;
+}
+
+.nav-title {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+/* 가맹점 리스트 아이템 */
+.merchant-item {
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: 0.2s;
+  font-size: 14px;
+  color: #aaa;
+}
+
+.merchant-item:hover {
+  background-color: #222;
+  color: #fff;
+}
+
+.merchant-item.active {
+  background-color: #1a1a1a;
+  color: #00e5ff;
+  border-left: 3px solid #00e5ff;
+}
+
+/* 메인 콘텐츠 영역 */
+.main-content {
+  flex: 1;
+  padding: 40px;
+  background-color: #000;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-add, .btn-excel {
+  background: #222;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-add:hover { background: #333; }
+
+/* 대시보드 지표 그리드 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.stat-item {
+  background: #151515;
+  padding: 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #888;
+  border: 1px solid #222;
+}
+
+.stat-item strong {
+  display: block;
+  font-size: 24px;
+  color: #00e5ff;
+  margin-top: 5px;
+}
+
+/* 탭 스타일 */
+.tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid #222;
+  margin-bottom: 20px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  color: #555;
+  padding: 10px 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tab.active {
+  color: #fff;
+  border-bottom: 2px solid #fff;
+}
+
+/* 모달 스타일 */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85); /* 배경을 어둡게 하여 폼에 집중 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000; /* 최상단 레이어 보장 */
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999;
 }
 
-/* 모달 콘텐츠 박스 */
 .modal-content {
-  background: #1a1c1e;
-  width: 100%;
-  max-width: 500px;
+  background: #111;
+  width: 450px;
   padding: 30px;
-  border-radius: 12px;
+  border-radius: 16px;
   border: 1px solid #333;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
-.modal-header h3 {
-  margin-bottom: 25px;
-  font-size: 20px;
-  color: #fff;
-  border-left: 4px solid #00e5ff;
-  padding-left: 10px;
-}
-
-/* 입력 필드 레이아웃 정리 */
 .input-group {
   margin-bottom: 15px;
   display: flex;
@@ -39,49 +174,39 @@
 }
 
 .input-group label {
-  font-size: 11px;
-  color: #888;
-  margin-bottom: 5px;
-  font-weight: bold;
+  font-size: 10px;
+  color: #666;
+  margin-bottom: 6px;
 }
 
 .input-group input {
-  background: #262a2d;
-  border: 1px solid #444;
-  padding: 10px;
-  border-radius: 6px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 12px;
   color: #fff;
-  font-size: 14px;
+  border-radius: 6px;
 }
 
-.input-group input:focus {
-  border-color: #00e5ff;
-  outline: none;
-}
-
-/* 하단 버튼 정렬 */
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 25px;
+  margin-top: 20px;
 }
 
 .btn-save {
   background: #00e5ff;
   color: #000;
   border: none;
-  padding: 10px 25px;
+  padding: 10px 24px;
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
 }
 
 .btn-cancel {
-  background: #333;
-  color: #fff;
+  background: transparent;
+  color: #666;
   border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
   cursor: pointer;
 }
