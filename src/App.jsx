@@ -1,120 +1,135 @@
 import React, { useState } from "react";
 import "./styles.css";
 
-// 실제 백엔드 주소 (Railway)
-const API_URL = "https://web-production-a7ba9.up.railway.app";
-
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
-  const [activeTab, setActiveTab] = useState("report"); 
-  const [loading, setLoading] = useState(false);
-  const [statusMsg, setStatusMsg] = useState("");
-  const [report, setReport] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState("최근 6개월");
+  
+  // 이미지의 '신규 가맹점 등록' 필드를 반영한 상태 관리
+  const [merchantData, setMerchantData] = useState({
+    name: "배포차",
+    region: "서울",
+    address: "서울 강남구 도산대로1길 16 지상1, 2층",
+    placeUrl: "https://naver.me/xv6tlDW3",
+    blogKeywords: "신사역 배포차",
+    instaHashtags: "배포차",
+    instaChannel: "https://www.instagram.com/bae_po_cha?igsh=MWNhazVidW9hcGZjaQ%3D%3D&utm_source=qr",
+    youtubeKeywords: "신사역 배포차"
+  });
 
-  // 복구된 가맹점 5개 데이터
-  const [merchants, setMerchants] = useState([
-    { id: "baepocha", name: "배포차", address: "서울 강남구 도산대로1길 16", placeUrl: "https://naver.me/xv6tlDW3", blogKeyword: "신사역 배포차", instaHashtag: "배포차", youtubeKeyword: "신사역 배포차" },
-    { id: "soyo", name: "소요", address: "경기 고양시 일산동구", placeUrl: "https://naver.me/F0AHoPtm", blogKeyword: "일산 소요", instaHashtag: "일산 소요", youtubeKeyword: "일산 소요" },
-    { id: "sunjamae", name: "순자매감자탕", address: "경기 화성시 동탄구", placeUrl: "https://naver.me/GNRzS59C", blogKeyword: "순자매감자탕", instaHashtag: "순자매감자탕", youtubeKeyword: "순자매감자탕" },
-    { id: "yeon_tan", name: "연탄김평선", address: "서울 강남구 선릉로90길 64", placeUrl: "https://naver.me/xNLZbjfI", blogKeyword: "연탄김평선", instaHashtag: "연탄김평선", youtubeKeyword: "연탄김평선" },
-    { id: "liveball", name: "라이브볼", address: "서울 강남구 테헤란로 147", placeUrl: "https://naver.me/5bVsye2y", blogKeyword: "라이브볼 역삼점", instaHashtag: "라이브볼 역삼점", youtubeKeyword: "라이브볼 역삼점" }
-  ]);
-
-  const [selectedId, setSelectedId] = useState("baepocha");
-
-  // 수집 시작 로직
-  const startAnalysis = async () => {
-    setLoading(true);
-    setStatusMsg("수집 시작 (플레이스 더보기 클릭 및 스크롤 중...)");
-    const token = localStorage.getItem("token");
-    const target = merchants.find(m => m.id === selectedId);
-
-    try {
-      const res = await fetch(`${API_URL}/api/reports`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ ...target, period: "1year" }),
-      });
-      const { job_id } = await res.json();
-
-      const timer = setInterval(async () => {
-        const sRes = await fetch(`${API_URL}/api/crawl-jobs/${job_id}`, {
-          headers: { "Authorization": `Bearer ${token}` },
-        });
-        const job = await sRes.json();
-        if (job.status === "done") {
-          clearInterval(timer);
-          setReport(job.result);
-          setLoading(false);
-          setActiveTab("report");
-        } else {
-          setStatusMsg(`데이터 수집 중... ${job.progress || 0}% 완료`);
-        }
-      }, 3000);
-    } catch (e) { setLoading(false); alert("서버 연결 실패"); }
-  };
-
-  if (!isLoggedIn) return (
-    <div className="login-wrap">
-      <div className="login-card">
-        <h1>AI매출업 관리자</h1>
-        <button className="run-btn" onClick={() => setIsLoggedIn(true)}>로그인</button>
+  if (!isLoggedIn) {
+    return (
+      <div className="auth-container">
+        <div className="login-box">
+          <div className="badge">AI매출업</div>
+          <h1>가맹점 분석 시스템</h1>
+          <p className="subtitle">먼키 · AI매출업 관리자 전용</p>
+          <div className="form-group">
+            <label>이메일</label>
+            <input type="text" defaultValue="zetarise@gmail.com" />
+          </div>
+          <div className="form-group">
+            <label>비밀번호</label>
+            <input type="password" defaultValue="****" />
+          </div>
+          <button className="login-btn" onClick={() => setIsLoggedIn(true)}>로그인</button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="dashboard">
+    <div className="app-layout">
+      {/* 사이드바 */}
       <aside className="sidebar">
-        <div className="sidebar-logo">AI매출업</div>
-        <nav>
-          <div className={`nav-item ${activeTab === 'report' ? 'active' : ''}`} onClick={() => setActiveTab('report')}>가맹점 리포트</div>
-          <div className={`nav-item ${activeTab === 'setup' ? 'active' : ''}`} onClick={() => setActiveTab('setup')}>가맹점 등록·관리</div>
+        <div className="brand">AI매출업</div>
+        <div className="sub-brand">가맹점 분석 시스템</div>
+        <nav className="menu">
+          <div className="menu-item active">가맹점 선택</div>
+          <p className="empty-msg">등록된 가맹점이 없습니다.</p>
         </nav>
       </aside>
 
+      {/* 메인 콘텐츠 */}
       <main className="main-content">
-        <header className="content-header">
-          <h1>{activeTab === 'report' ? '분석 리포트' : '가맹점 설정'}</h1>
-          <button className="logout-btn" onClick={() => setIsLoggedIn(false)}>로그아웃</button>
+        <header className="main-header">
+          <h2>가맹점 선택</h2>
+          <div className="header-controls">
+            <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)}>
+              <option>최근 1개월</option>
+              <option>최근 6개월</option>
+              <option>최근 1년</option>
+            </select>
+            <button className="btn-collect" onClick={() => setShowModal(true)}>🚀 수집 시작</button>
+            <button className="btn-excel">📊 엑셀 다운로드 ▾</button>
+          </div>
         </header>
 
-        {activeTab === 'setup' ? (
-          <section className="setup-container card animated-up">
-            <h3>신규 가맹점 등록</h3>
-            <div className="input-grid">
-              <input placeholder="매장명" className="custom-input" />
-              <input placeholder="네이버 플레이스 URL" className="custom-input" />
-              <input placeholder="블로그 키워드" className="custom-input" />
-              <input placeholder="인스타 해시태그" className="custom-input" />
-              <input placeholder="유튜브 키워드" className="custom-input" />
-            </div>
-            <button className="run-btn" style={{marginTop:'15px'}}>가맹점 저장</button>
-          </section>
-        ) : (
-          <>
-            <section className="filter-bar card">
-              <select value={selectedId} onChange={e => setSelectedId(e.target.value)}>
-                {merchants.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-              <button className="run-btn" onClick={startAnalysis} disabled={loading}>
-                {loading ? statusMsg : "데이터 수집 시작"}
-              </button>
-            </section>
-            {report && (
-              <div className="report-view card animated-up">
-                <h2>{report.merchant_name} 분석 데이터</h2>
-                <div className="stats-grid">
-                  <div className="stat-card"><span>전체 언급</span><strong>{report.summary.total_mentions}</strong></div>
-                  <div className="stat-card"><span>블로그</span><strong>{report.summary.naver_blog_count}</strong></div>
-                  <div className="stat-card"><span>인스타</span><strong>{report.summary.instagram_count}</strong></div>
-                  <div className="stat-card"><span>리뷰</span><strong>{report.summary.place_receipt_count}</strong></div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        {/* 상단 요약 카드 */}
+        <section className="stats-container">
+          <div className="stat-card"><span>총 언급 수</span><strong>0</strong><small>건</small></div>
+          <div className="stat-card"><span>영수증 리뷰</span><strong>0</strong><small>건</small></div>
+          <div className="stat-card"><span>플레이스 블로그</span><strong>0</strong><small>건</small></div>
+          <div className="stat-card"><span>네이버 블로그</span><strong>0</strong><small>건</small></div>
+          <div className="stat-card"><span>인스타그램</span><strong>0</strong><small>건</small></div>
+          <div className="stat-card"><span>유튜브 조회수</span><strong className="pink-text">0</strong><small>회</small></div>
+        </section>
+
+        {/* 탭 메뉴 */}
+        <div className="tab-container">
+          <button className="tab active">📊 월별 집계</button>
+          <button className="tab">📅 일별 집계</button>
+          <button className="tab">💬 AI 분석 리포트</button>
+          <button className="tab">🤖 ChatGPT 연동</button>
+        </div>
+
+        {/* 데이터 테이블 섹션 */}
+        <div className="data-section card">
+          <h3>월별 채널별 집계</h3>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>월</th>
+                <th>네이버 블로그</th>
+                <th>인스타그램</th>
+                <th>영수증 리뷰</th>
+                <th>플레이스 블로그</th>
+                <th>유튜브</th>
+                <th>합계</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan="7" className="no-data">데이터 없음</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </main>
+
+      {/* 가맹점 등록 모달 (이미지 기반 복구) */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>신규 가맹점 등록</h3>
+            <div className="modal-body">
+              <div className="input-field"><label>NAME</label><input type="text" value={merchantData.name} /></div>
+              <div className="input-field"><label>REGION</label><input type="text" value={merchantData.region} /></div>
+              <div className="input-field"><label>ADDRESS</label><input type="text" value={merchantData.address} /></div>
+              <div className="input-field"><label>NAVER PLACE URL</label><input type="text" value={merchantData.placeUrl} /></div>
+              <div className="input-field"><label>BLOG KEYWORDS</label><input type="text" value={merchantData.blogKeywords} /></div>
+              <div className="input-field"><label>INSTAGRAM HASHTAGS</label><input type="text" value={merchantData.instaHashtags} /></div>
+              <div className="input-field"><label>INSTAGRAM CHANNEL</label><input type="text" value={merchantData.instaChannel} /></div>
+              <div className="input-field"><label>YOUTUBE KEYWORDS</label><input type="text" value={merchantData.youtubeKeywords} /></div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowModal(false)}>취소</button>
+              <button className="btn-save">저장</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
