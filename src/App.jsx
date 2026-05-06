@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// 기획자님의 실제 Railway API 주소
-const RAILWAY_API_URL = "https://web-production-a7ba9.up.railway.app";
+// 기획자님의 실제 Railway API 주소 (끝에 /가 없는지 확인)
+const API_BASE_URL = "https://web-production-a7ba9.up.railway.app";
 
 function App() {
   const [merchants, setMerchants] = useState([]);
@@ -12,16 +12,16 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newMerchant, setNewMerchant] = useState({ name: '', region: '' });
 
-  // 매장 목록 가져오기
+  // 1. 매장 목록 로드
   const fetchMerchants = async () => {
     try {
-      const response = await fetch(`${RAILWAY_API_URL}/api/merchants`);
+      const response = await fetch(`${API_BASE_URL}/api/merchants`);
       if (response.ok) {
         const data = await response.json();
         setMerchants(data);
       }
     } catch (error) {
-      console.error("목록 로드 에러:", error);
+      console.error("데이터 로드 실패:", error);
     }
   };
 
@@ -29,45 +29,34 @@ function App() {
     fetchMerchants();
   }, []);
 
-  // [저장하기] 버튼 클릭 시 동작
+  // 2. 신규 매장 저장
   const handleSaveMerchant = async () => {
-    if (!newMerchant.name) {
-      alert("매장 이름을 입력해주세요.");
-      return;
-    }
-
+    if (!newMerchant.name) return alert("매장 이름을 입력하세요.");
     try {
-      const response = await fetch(`${RAILWAY_API_URL}/api/merchants`, {
+      const response = await fetch(`${API_BASE_URL}/api/merchants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newMerchant.name,
-          region: newMerchant.region,
-          blog_keywords: newMerchant.name
-        }),
+        body: JSON.stringify(newMerchant),
       });
-
       if (response.ok) {
-        alert("성공적으로 등록되었습니다!");
+        alert("등록 성공!");
         setIsModalOpen(false);
         setNewMerchant({ name: '', region: '' });
-        fetchMerchants(); // 목록 갱신
-      } else {
-        const errorMsg = await response.text();
-        alert("서버 응답 오류: " + errorMsg);
+        fetchMerchants();
       }
     } catch (error) {
-      alert("연결 오류: 백엔드 서버(Railway)가 켜져 있는지 확인하세요. " + error.message);
+      alert("서버 연결 실패: " + error.message);
     }
   };
 
+  // 3. 매장 클릭 시 리포트 생성 (크롤링 시작)
   const handleMerchantClick = async (merchant) => {
     setSelectedMerchant(merchant);
     setLoading(true);
     setReportData(null);
 
     try {
-      const response = await fetch(`${RAILWAY_API_URL}/api/reports`, {
+      const response = await fetch(`${API_BASE_URL}/api/reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ merchant_id: merchant.id }),
@@ -75,16 +64,16 @@ function App() {
 
       if (response.ok) {
         const job = await response.json();
-        // 3초 후 결과 조회
+        // 크롤링 완료를 확인하기 위해 5초 뒤 결과 조회
         setTimeout(async () => {
-          const res = await fetch(`${RAILWAY_API_URL}/api/crawl-jobs/${job.job_id}`);
+          const res = await fetch(`${API_BASE_URL}/api/crawl-jobs/${job.job_id}`);
           const result = await res.json();
           setReportData(result.result);
           setLoading(false);
-        }, 3000);
+        }, 5000);
       }
     } catch (error) {
-      alert("리포트 생성 실패: " + error.message);
+      alert("분석 실패: " + error.message);
       setLoading(false);
     }
   };
@@ -92,7 +81,7 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>AI매출업 <span>가맹점 분석 시스템</span></h1>
+        <h1>AI매출업 <span>가맹점 분석</span></h1>
         <button onClick={() => setIsModalOpen(true)} className="add-btn">+ 새 매장 등록</button>
       </header>
 
@@ -101,11 +90,7 @@ function App() {
           <h3>가맹점 리스트</h3>
           <ul>
             {merchants.map(m => (
-              <li 
-                key={m.id} 
-                onClick={() => handleMerchantClick(m)}
-                className={selectedMerchant?.id === m.id ? 'active' : ''}
-              >
+              <li key={m.id} onClick={() => handleMerchantClick(m)} className={selectedMerchant?.id === m.id ? 'active' : ''}>
                 <strong>{m.name}</strong> <span>{m.region}</span>
               </li>
             ))}
@@ -117,15 +102,15 @@ function App() {
             <div className="status-msg">데이터를 실시간 수집 및 분석 중입니다...</div>
           ) : reportData ? (
             <div className="report-container">
-              <h2>{reportData.merchant_name} 평판 분석</h2>
+              <h2>{reportData.merchant_name} 평판 분석 결과</h2>
               <div className="cards">
-                <div className="card"><span>네이버 블로그</span><strong>{reportData.summary.naver_blogs}</strong></div>
-                <div className="card"><span>인스타그램</span><strong>{reportData.summary.instagram}</strong></div>
-                <div className="card"><span>총 언급 수</span><strong>{reportData.summary.total_mentions}</strong></div>
+                <div className="card"><span>네이버 블로그</span><strong>{reportData.summary.naver_blogs}건</strong></div>
+                <div className="card"><span>인스타그램</span><strong>{reportData.summary.instagram}건</strong></div>
+                <div className="card"><span>총 언급량</span><strong>{reportData.summary.total_mentions}건</strong></div>
               </div>
             </div>
           ) : (
-            <div className="status-msg">가맹점을 선택하면 분석이 시작됩니다.</div>
+            <div className="status-msg">가맹점을 선택하여 분석을 시작하세요.</div>
           )}
         </section>
       </main>
@@ -134,16 +119,8 @@ function App() {
         <div className="modal">
           <div className="modal-box">
             <h3>신규 매장 등록</h3>
-            <input 
-              placeholder="매장명" 
-              value={newMerchant.name} 
-              onChange={e => setNewMerchant({...newMerchant, name: e.target.value})} 
-            />
-            <input 
-              placeholder="지역" 
-              value={newMerchant.region} 
-              onChange={e => setNewMerchant({...newMerchant, region: e.target.value})} 
-            />
+            <input placeholder="매장명" value={newMerchant.name} onChange={e => setNewMerchant({...newMerchant, name: e.target.value})} />
+            <input placeholder="지역" value={newMerchant.region} onChange={e => setNewMerchant({...newMerchant, region: e.target.value})} />
             <button onClick={handleSaveMerchant} className="save-btn">저장하기</button>
             <button onClick={() => setIsModalOpen(false)}>닫기</button>
           </div>
