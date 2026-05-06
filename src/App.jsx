@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 
-// 백엔드 URL (기획자님의 Railway 주소로 설정됨)
+// 백엔드 URL
 const API_BASE_URL = 'https://web-production-a7ba9.up.railway.app/api';
 
 function App() {
@@ -13,8 +12,9 @@ function App() {
   // 1. 매장 리스트 불러오기
   const fetchMerchants = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/merchants`);
-      setMerchants(res.data);
+      const res = await fetch(`${API_BASE_URL}/merchants`);
+      const data = await res.json();
+      setMerchants(data);
     } catch (err) {
       console.error("매장 목록 로드 실패", err);
     }
@@ -28,12 +28,15 @@ function App() {
     setLoading(true);
     setReport(null);
     try {
-      // 리포트 생성 요청
-      const startRes = await axios.post(`${API_BASE_URL}/reports`, { merchantId: id });
+      const res = await fetch(`${API_BASE_URL}/reports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merchantId: id })
+      });
+      const data = await res.json();
       
-      // 즉시 결과를 확인하거나 폴링 시작
-      if (startRes.data.status === 'completed') {
-        setReport(startRes.data);
+      if (data.status === 'completed') {
+        setReport(data);
         setLoading(false);
       } else {
         checkStatus(id);
@@ -47,9 +50,10 @@ function App() {
   // 3. 상태 체크 (Polling)
   const checkStatus = async (id) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/crawl-jobs/${id}`);
-      if (res.data.status === 'completed') {
-        setReport(res.data);
+      const res = await fetch(`${API_BASE_URL}/crawl-jobs/${id}`);
+      const data = await res.json();
+      if (data.status === 'completed') {
+        setReport(data);
         setLoading(false);
       } else {
         setTimeout(() => checkStatus(id), 2000);
@@ -109,7 +113,7 @@ function App() {
             <div style={{ marginBottom: '20px' }}>
               <p style={{ fontSize: '12px', color: '#888' }}>주요 키워드</p>
               <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-                {report.keywords.map(kw => <span key={kw} style={{ padding: '4px 10px', backgroundColor: '#333', borderRadius: '15px', fontSize: '12px' }}>#{kw}</span>)}
+                {(report.keywords || []).map(kw => <span key={kw} style={{ padding: '4px 10px', backgroundColor: '#333', borderRadius: '15px', fontSize: '12px' }}>#{kw}</span>)}
               </div>
             </div>
             <p style={{ lineHeight: '1.6', color: '#ccc' }}>{report.summary}</p>
