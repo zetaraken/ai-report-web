@@ -1,131 +1,122 @@
 import React, { useState, useEffect } from 'react';
-import './App.css';
+import axios from 'axios';
 
-// 기획자님의 실제 Railway API 주소 (끝에 /가 없는지 확인)
-const API_BASE_URL = "https://web-production-a7ba9.up.railway.app";
+// 백엔드 URL (기획자님의 Railway 주소로 설정됨)
+const API_BASE_URL = 'https://web-production-a7ba9.up.railway.app/api';
 
 function App() {
   const [merchants, setMerchants] = useState([]);
-  const [selectedMerchant, setSelectedMerchant] = useState(null);
-  const [reportData, setReportData] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newMerchant, setNewMerchant] = useState({ name: '', region: '' });
 
-  // 1. 매장 목록 로드
+  // 1. 매장 리스트 불러오기
   const fetchMerchants = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/merchants`);
-      if (response.ok) {
-        const data = await response.json();
-        setMerchants(data);
-      }
-    } catch (error) {
-      console.error("데이터 로드 실패:", error);
+      const res = await axios.get(`${API_BASE_URL}/merchants`);
+      setMerchants(res.data);
+    } catch (err) {
+      console.error("매장 목록 로드 실패", err);
     }
   };
 
-  useEffect(() => {
-    fetchMerchants();
-  }, []);
+  useEffect(() => { fetchMerchants(); }, []);
 
-  // 2. 신규 매장 저장
-  const handleSaveMerchant = async () => {
-    if (!newMerchant.name) return alert("매장 이름을 입력하세요.");
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/merchants`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMerchant),
-      });
-      if (response.ok) {
-        alert("등록 성공!");
-        setIsModalOpen(false);
-        setNewMerchant({ name: '', region: '' });
-        fetchMerchants();
-      }
-    } catch (error) {
-      alert("서버 연결 실패: " + error.message);
-    }
-  };
-
-  // 3. 매장 클릭 시 리포트 생성 (크롤링 시작)
-  const handleMerchantClick = async (merchant) => {
-    setSelectedMerchant(merchant);
+  // 2. 분석 시작 (리포트 생성)
+  const handleAnalyze = async (id) => {
+    setSelectedId(id);
     setLoading(true);
-    setReportData(null);
-
+    setReport(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/reports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merchant_id: merchant.id }),
-      });
-
-      if (response.ok) {
-        const job = await response.json();
-        // 크롤링 완료를 확인하기 위해 5초 뒤 결과 조회
-        setTimeout(async () => {
-          const res = await fetch(`${API_BASE_URL}/api/crawl-jobs/${job.job_id}`);
-          const result = await res.json();
-          setReportData(result.result);
-          setLoading(false);
-        }, 5000);
+      // 리포트 생성 요청
+      const startRes = await axios.post(`${API_BASE_URL}/reports`, { merchantId: id });
+      
+      // 즉시 결과를 확인하거나 폴링 시작
+      if (startRes.data.status === 'completed') {
+        setReport(startRes.data);
+        setLoading(false);
+      } else {
+        checkStatus(id);
       }
-    } catch (error) {
-      alert("분석 실패: " + error.message);
+    } catch (err) {
+      alert("분석 요청 중 오류가 발생했습니다.");
+      setLoading(false);
+    }
+  };
+
+  // 3. 상태 체크 (Polling)
+  const checkStatus = async (id) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/crawl-jobs/${id}`);
+      if (res.data.status === 'completed') {
+        setReport(res.data);
+        setLoading(false);
+      } else {
+        setTimeout(() => checkStatus(id), 2000);
+      }
+    } catch (err) {
       setLoading(false);
     }
   };
 
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1>AI매출업 <span>가맹점 분석</span></h1>
-        <button onClick={() => setIsModalOpen(true)} className="add-btn">+ 새 매장 등록</button>
-      </header>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#000', color: '#fff', fontFamily: 'sans-serif' }}>
+      {/* 사이드바 */}
+      <div style={{ width: '250px', borderRight: '1px solid #333', padding: '20px' }}>
+        <h2 style={{ color: '#00f2ff' }}>AI매출업</h2>
+        <p style={{ fontSize: '12px', color: '#888' }}>가맹점 분석 시스템</p>
+        <div style={{ marginTop: '40px' }}>
+          <p style={{ fontSize: '13px', marginBottom: '10px' }}>가맹점 리스트</p>
+          {merchants.map(m => (
+            <div 
+              key={m.id} 
+              onClick={() => handleAnalyze(m.id)}
+              style={{ 
+                padding: '15px', borderRadius: '8px', backgroundColor: selectedId === m.id ? '#111' : 'transparent',
+                cursor: 'pointer', border: selectedId === m.id ? '1px solid #00f2ff' : '1px solid #333', marginBottom: '10px'
+              }}
+            >
+              <strong>{m.name}</strong> <span style={{ fontSize: '11px', color: '#888' }}>{m.region}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      <main className="app-content">
-        <aside className="sidebar">
-          <h3>가맹점 리스트</h3>
-          <ul>
-            {merchants.map(m => (
-              <li key={m.id} onClick={() => handleMerchantClick(m)} className={selectedMerchant?.id === m.id ? 'active' : ''}>
-                <strong>{m.name}</strong> <span>{m.region}</span>
-              </li>
-            ))}
-          </ul>
-        </aside>
+      {/* 메인 콘텐츠 */}
+      <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        {!selectedId && <p style={{ color: '#888' }}>가맹점을 선택하면 분석이 시작됩니다.</p>}
+        
+        {loading && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: '40px', height: '40px', border: '4px solid #333', borderTop: '4px solid #00f2ff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
+            <p>데이터를 수집하고 있습니다...</p>
+          </div>
+        )}
 
-        <section className="dashboard">
-          {loading ? (
-            <div className="status-msg">데이터를 실시간 수집 및 분석 중입니다...</div>
-          ) : reportData ? (
-            <div className="report-container">
-              <h2>{reportData.merchant_name} 평판 분석 결과</h2>
-              <div className="cards">
-                <div className="card"><span>네이버 블로그</span><strong>{reportData.summary.naver_blogs}건</strong></div>
-                <div className="card"><span>인스타그램</span><strong>{reportData.summary.instagram}건</strong></div>
-                <div className="card"><span>총 언급량</span><strong>{reportData.summary.total_mentions}건</strong></div>
+        {report && !loading && (
+          <div style={{ width: '100%', maxWidth: '600px', backgroundColor: '#111', padding: '30px', borderRadius: '15px', border: '1px solid #333' }}>
+            <h3 style={{ color: '#00f2ff', marginBottom: '20px' }}>분석 리포트</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div style={{ padding: '15px', backgroundColor: '#222', borderRadius: '10px' }}>
+                <p style={{ fontSize: '12px', color: '#888' }}>언급 횟수</p>
+                <h4 style={{ fontSize: '24px', margin: '5px 0' }}>{report.mentionCount}건</h4>
+              </div>
+              <div style={{ padding: '15px', backgroundColor: '#222', borderRadius: '10px' }}>
+                <p style={{ fontSize: '12px', color: '#888' }}>긍정 비율</p>
+                <h4 style={{ fontSize: '24px', margin: '5px 0', color: '#00f2ff' }}>{report.positiveRate}%</h4>
               </div>
             </div>
-          ) : (
-            <div className="status-msg">가맹점을 선택하여 분석을 시작하세요.</div>
-          )}
-        </section>
-      </main>
-
-      {isModalOpen && (
-        <div className="modal">
-          <div className="modal-box">
-            <h3>신규 매장 등록</h3>
-            <input placeholder="매장명" value={newMerchant.name} onChange={e => setNewMerchant({...newMerchant, name: e.target.value})} />
-            <input placeholder="지역" value={newMerchant.region} onChange={e => setNewMerchant({...newMerchant, region: e.target.value})} />
-            <button onClick={handleSaveMerchant} className="save-btn">저장하기</button>
-            <button onClick={() => setIsModalOpen(false)}>닫기</button>
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ fontSize: '12px', color: '#888' }}>주요 키워드</p>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                {report.keywords.map(kw => <span key={kw} style={{ padding: '4px 10px', backgroundColor: '#333', borderRadius: '15px', fontSize: '12px' }}>#{kw}</span>)}
+              </div>
+            </div>
+            <p style={{ lineHeight: '1.6', color: '#ccc' }}>{report.summary}</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
