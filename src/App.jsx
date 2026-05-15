@@ -366,41 +366,47 @@ export default function App() {
         merchant_name: merchant.name,
         status: "pending",
         progress: 0,
-        message: "분석 시작 중...",
+        message: "분석 시작 중... (서버 준비 중)",
       });
 
+      // ── 서버가 job을 파일에 저장할 시간을 줌 (2초 대기 후 폴링 시작) ──
+      await new Promise(r => setTimeout(r, 2000));
+
       let failCount = 0;
-      const MAX_FAIL = 5;       // 연속 실패 5회까지 허용
-      const MAX_POLL = 200;     // 최대 200회 (약 10분)
+      const MAX_FAIL_INIT = 15;   // 초기 job 생성 대기: 최대 15회(45초) 허용
+      const MAX_FAIL_RUN  = 5;    // 실행 중 연속 실패: 최대 5회
+      const MAX_POLL = 300;       // 최대 300회 (약 15분)
       let pollCount = 0;
+      let jobStarted = false;     // job이 한 번이라도 정상 응답했는지
 
       pollRef.current = setInterval(async () => {
         pollCount++;
 
-        // 최대 시간 초과
         if (pollCount > MAX_POLL) {
           clearInterval(pollRef.current);
           setActiveJob(null);
-          alert("분석 시간이 초과되었습니다 (10분). Railway 서버 로그를 확인해 주세요.");
+          alert("분석 시간이 초과되었습니다 (15분). Railway 서버 로그를 확인해 주세요.");
           return;
         }
 
         try {
           const statusRes = await fetch(`${API}/api/crawl-jobs/${job_id}`);
 
-          // 404: Railway 재배포로 job이 사라진 경우
           if (statusRes.status === 404) {
             failCount++;
+            const maxFail = jobStarted ? MAX_FAIL_RUN : MAX_FAIL_INIT;
             setActiveJob(prev => ({
               ...prev,
-              message: `서버 연결 확인 중... (${failCount}/${MAX_FAIL})`,
+              message: jobStarted
+                ? `서버 연결 확인 중... (${failCount}/${maxFail})`
+                : `서버에서 분석 준비 중... (${failCount}/${maxFail})`,
             }));
-            if (failCount >= MAX_FAIL) {
+            if (failCount >= maxFail) {
               clearInterval(pollRef.current);
               setActiveJob(null);
               alert(
                 "분석 작업을 찾을 수 없습니다.\n\n" +
-                "원인: Railway 서버가 재배포되어 작업이 초기화되었을 수 있습니다.\n" +
+                "원인: Railway 서버가 재시작되었거나 응답이 지연되고 있습니다.\n" +
                 "해결: 잠시 후 다시 '분석 실행'을 눌러주세요."
               );
             }
@@ -410,7 +416,8 @@ export default function App() {
           if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
 
           const job = await statusRes.json();
-          failCount = 0; // 성공 시 실패 카운트 초기화
+          failCount = 0;
+          jobStarted = true;
           setActiveJob(job);
 
           if (job.status === "done") {
@@ -432,12 +439,13 @@ export default function App() {
 
         } catch (e) {
           failCount++;
+          const maxFail = jobStarted ? MAX_FAIL_RUN : MAX_FAIL_INIT;
           console.error("폴링 오류", e);
           setActiveJob(prev => ({
             ...prev,
-            message: `서버 연결 재시도 중... (${failCount}/${MAX_FAIL})`,
+            message: `서버 연결 재시도 중... (${failCount}/${maxFail})`,
           }));
-          if (failCount >= MAX_FAIL) {
+          if (failCount >= maxFail) {
             clearInterval(pollRef.current);
             setActiveJob(null);
             alert(
