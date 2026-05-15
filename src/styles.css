@@ -320,6 +320,38 @@ a:hover { text-decoration: underline; }
 .organic-cell { color: var(--organic); font-weight: 600; }
 .unknown-cell { color: var(--text-muted); font-weight: 600; }
 
+/* ── 공식 수치 배너 ─────────────────────────────────────── */
+.official-banner {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: linear-gradient(135deg, #1a2744 0%, #1e2330 100%);
+  border: 1px solid #3a5299;
+  border-radius: 12px; padding: 18px 20px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.banner-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.banner-body { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.banner-title {
+  font-size: 11px; font-weight: 700; color: #7ca4f7;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.banner-vals { font-size: 15px; color: var(--text); }
+.banner-vals strong { color: var(--primary); font-weight: 700; }
+.banner-note {
+  font-size: 11px; color: var(--text-muted);
+  align-self: flex-end; white-space: nowrap;
+}
+
+/* ── stat-sub ────────────────────────────────────────────── */
+.stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── ad-note / table-note ───────────────────────────────── */
+.ad-note { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+.table-note {
+  font-size: 11px; color: var(--text-muted);
+  margin-top: 14px; line-height: 1.6;
+  border-top: 1px solid var(--border); padding-top: 10px;
+}
+
 /* ── 반응형 ─────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .main, .report-page { padding: 16px; }

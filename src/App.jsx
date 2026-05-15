@@ -92,6 +92,8 @@ function Report({ report, onBack }) {
 
   const totalBlog = s.total_blog_reviews || 0;
   const totalReceipt = s.total_receipt_reviews || 0;
+  const officialReceipt = s.official_receipt_count || 0;
+  const officialBlog = s.official_blog_count || 0;
 
   return (
     <div className="report-page">
@@ -103,15 +105,33 @@ function Report({ report, onBack }) {
         </div>
       </div>
 
-      {/* 요약 카드 */}
+      {/* 공식 수치 배너 */}
+      {(officialReceipt > 0 || officialBlog > 0) && (
+        <div className="official-banner">
+          <span className="banner-icon">📌</span>
+          <div className="banner-body">
+            <span className="banner-title">네이버 플레이스 공식 수치</span>
+            <span className="banner-vals">
+              방문자리뷰 <strong>{officialReceipt.toLocaleString()}건</strong>
+              &nbsp;·&nbsp;
+              블로그리뷰 <strong>{officialBlog.toLocaleString()}건</strong>
+            </span>
+          </div>
+          <span className="banner-note">※ 하단 분석 건수는 광고 판별을 위한 수집 샘플입니다</span>
+        </div>
+      )}
+
+      {/* 요약 카드 — 공식 수치 우선 표시 */}
       <div className="summary-grid">
         <div className="stat-card">
-          <div className="stat-label">영수증리뷰</div>
-          <div className="stat-value">{totalReceipt.toLocaleString()}</div>
+          <div className="stat-label">영수증리뷰 전체</div>
+          <div className="stat-value">{(officialReceipt || totalReceipt).toLocaleString()}</div>
+          {officialReceipt > 0 && <div className="stat-sub">분석 샘플 {totalReceipt}건</div>}
         </div>
         <div className="stat-card">
-          <div className="stat-label">블로그리뷰</div>
-          <div className="stat-value">{totalBlog.toLocaleString()}</div>
+          <div className="stat-label">블로그리뷰 전체</div>
+          <div className="stat-value">{(officialBlog || totalBlog).toLocaleString()}</div>
+          {officialBlog > 0 && <div className="stat-sub">분석 샘플 {totalBlog}건</div>}
         </div>
         <div className="stat-card">
           <div className="stat-label">네이버 검색 콘텐츠</div>
@@ -125,10 +145,10 @@ function Report({ report, onBack }) {
 
       {/* 광고 판별 요약 */}
       <div className="ad-summary">
-        <h2>광고 판별 결과</h2>
+        <h2>광고 판별 결과 <span className="ad-note">(수집 샘플 기준)</span></h2>
         <div className="ad-grid">
           <div className="ad-section">
-            <h3>📋 블로그리뷰 ({totalBlog}건)</h3>
+            <h3>📝 블로그리뷰 (전체 {(officialBlog||totalBlog)}건 중 {totalBlog}건 분석)</h3>
             <div className="ad-bars">
               <AdBar label="광고" count={s.blog_ad_count} total={totalBlog} color="var(--ad)" />
               <AdBar label="내돈내산" count={s.blog_organic_count} total={totalBlog} color="var(--organic)" />
@@ -136,11 +156,15 @@ function Report({ report, onBack }) {
             </div>
           </div>
           <div className="ad-section">
-            <h3>🧾 영수증리뷰 ({totalReceipt}건)</h3>
+            <h3>🧾 영수증리뷰 (전체 {(officialReceipt||totalReceipt)}건 중 {totalReceipt}건 분석)</h3>
             <div className="ad-bars">
               <AdBar label="광고" count={s.receipt_ad_count} total={totalReceipt} color="var(--ad)" />
               <AdBar label="내돈내산" count={s.receipt_organic_count} total={totalReceipt} color="var(--organic)" />
-              <AdBar label="판별불가" count={totalReceipt - (s.receipt_ad_count || 0) - (s.receipt_organic_count || 0)} total={totalReceipt} color="var(--unknown)" />
+              <AdBar label="판별불가"
+                count={(s.receipt_unknown_count != null)
+                  ? s.receipt_unknown_count
+                  : totalReceipt - (s.receipt_ad_count||0) - (s.receipt_organic_count||0)}
+                total={totalReceipt} color="var(--unknown)" />
             </div>
           </div>
         </div>
@@ -150,50 +174,59 @@ function Report({ report, onBack }) {
       <div className="tab-bar">
         {["summary", "receipt", "blog"].map((t) => (
           <button key={t} className={`tab-btn ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
-            {t === "summary" ? "전체 요약" : t === "receipt" ? "영수증리뷰" : "블로그리뷰"}
+            {t === "summary" ? "전체 요약" : t === "receipt" ? `영수증리뷰 (${totalReceipt})` : `블로그리뷰 (${totalBlog})`}
           </button>
         ))}
       </div>
 
-      {/* 탭 컨텐츠 */}
-      {tab === "receipt" && (
-        <ReviewList reviews={report.naver_receipt_reviews} label="영수증리뷰" />
-      )}
-      {tab === "blog" && (
-        <ReviewList reviews={report.naver_blog_reviews} label="블로그리뷰" showLink />
-      )}
+      {tab === "receipt" && <ReviewList reviews={report.naver_receipt_reviews} label="영수증리뷰" />}
+      {tab === "blog" && <ReviewList reviews={report.naver_blog_reviews} label="블로그리뷰" showLink />}
       {tab === "summary" && (
         <div className="summary-detail">
           <h3>📊 플랫폼별 상세</h3>
           <table className="detail-table">
             <thead>
-              <tr><th>플랫폼</th><th>총 건수</th><th>광고</th><th>내돈내산</th><th>판별불가</th></tr>
+              <tr>
+                <th>플랫폼</th>
+                <th>공식 전체</th>
+                <th>분석 샘플</th>
+                <th>광고</th>
+                <th>내돈내산</th>
+                <th>판별불가</th>
+              </tr>
             </thead>
             <tbody>
               <tr>
                 <td>네이버 블로그리뷰</td>
+                <td><strong>{(officialBlog||totalBlog).toLocaleString()}</strong></td>
                 <td>{totalBlog}</td>
-                <td className="ad-cell">{s.blog_ad_count || 0}</td>
-                <td className="organic-cell">{s.blog_organic_count || 0}</td>
-                <td className="unknown-cell">{s.blog_unknown_count || 0}</td>
+                <td className="ad-cell">{s.blog_ad_count||0}</td>
+                <td className="organic-cell">{s.blog_organic_count||0}</td>
+                <td className="unknown-cell">{s.blog_unknown_count||0}</td>
               </tr>
               <tr>
                 <td>네이버 영수증리뷰</td>
+                <td><strong>{(officialReceipt||totalReceipt).toLocaleString()}</strong></td>
                 <td>{totalReceipt}</td>
-                <td className="ad-cell">{s.receipt_ad_count || 0}</td>
-                <td className="organic-cell">{s.receipt_organic_count || 0}</td>
-                <td className="unknown-cell">{totalReceipt - (s.receipt_ad_count || 0) - (s.receipt_organic_count || 0)}</td>
+                <td className="ad-cell">{s.receipt_ad_count||0}</td>
+                <td className="organic-cell">{s.receipt_organic_count||0}</td>
+                <td className="unknown-cell">
+                  {(s.receipt_unknown_count!=null)
+                    ? s.receipt_unknown_count
+                    : totalReceipt-(s.receipt_ad_count||0)-(s.receipt_organic_count||0)}
+                </td>
               </tr>
               <tr>
                 <td>네이버 검색결과</td>
-                <td colSpan={4}>{(s.naver_search_count || 0).toLocaleString()} 건</td>
+                <td colSpan={5}>{(s.naver_search_count||0).toLocaleString()} 건</td>
               </tr>
               <tr>
                 <td>인스타그램</td>
-                <td colSpan={4}>{(s.instagram_count || 0).toLocaleString()} 건</td>
+                <td colSpan={5}>{(s.instagram_count||0).toLocaleString()} 건</td>
               </tr>
             </tbody>
           </table>
+          <p className="table-note">* 공식 전체 수 = 네이버 플레이스 화면 표시 수치 / 분석 샘플 = 광고 판별을 위해 원문 수집한 건수</p>
         </div>
       )}
     </div>
