@@ -322,27 +322,49 @@ a:hover { text-decoration: underline; }
 
 /* ── 공식 수치 배너 ─────────────────────────────────────── */
 .official-banner {
-  display: flex; align-items: flex-start; gap: 14px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
   background: linear-gradient(135deg, #1a2744 0%, #1e2330 100%);
   border: 1px solid #3a5299;
-  border-radius: 12px; padding: 18px 20px;
-  margin-bottom: 20px; flex-wrap: wrap;
+  border-radius: 12px; padding: 16px 20px;
+  margin-bottom: 20px;
 }
-.banner-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
-.banner-body { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.banner-icon { font-size: 20px; }
+.banner-body { display: flex; flex-direction: column; gap: 3px; }
 .banner-title {
   font-size: 11px; font-weight: 700; color: #7ca4f7;
   text-transform: uppercase; letter-spacing: 0.8px;
 }
 .banner-vals { font-size: 15px; color: var(--text); }
 .banner-vals strong { color: var(--primary); font-weight: 700; }
-.banner-note {
-  font-size: 11px; color: var(--text-muted);
-  align-self: flex-end; white-space: nowrap;
+.banner-collected {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 2px; text-align: right;
+}
+.banner-collected span:first-child {
+  font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.banner-collected span:last-child { font-size: 13px; color: var(--text-muted); }
+.banner-collected strong { color: var(--organic); }
+
+@media (max-width: 600px) {
+  .official-banner { grid-template-columns: auto 1fr; }
+  .banner-collected { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
 }
 
 /* ── stat-sub ────────────────────────────────────────────── */
 .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── official-badge (테이블 내) ─────────────────────────── */
+.official-badge {
+  display: inline-block; margin-left: 8px;
+  font-size: 10px; color: var(--text-muted);
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; vertical-align: middle;
+}
 
 /* ── ad-note / table-note ───────────────────────────────── */
 .ad-note { font-size: 12px; font-weight: 400; color: var(--text-muted); }
