@@ -1,128 +1,450 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from "react";
 
-// 백엔드 URL
-const API_BASE_URL = 'https://web-production-a7ba9.up.railway.app/api';
+const API = import.meta.env.VITE_API_BASE_URL || "";
 
-function App() {
-  const [merchants, setMerchants] = useState([]);
-  const [selectedId, setSelectedId] = useState(null);
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(false);
+// ── 유틸 ──────────────────────────────────────────────────────────
+const adColor = (type) => {
+  if (type === "광고") return "var(--ad)";
+  if (type === "내돈내산") return "var(--organic)";
+  return "var(--unknown)";
+};
+const adBadge = (type) => {
+  if (type === "광고") return "🔴 광고";
+  if (type === "내돈내산") return "🟢 내돈내산";
+  return "⚪ 판별불가";
+};
 
-  // 1. 매장 리스트 불러오기
-  const fetchMerchants = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/merchants`);
-      const data = await res.json();
-      setMerchants(data);
-    } catch (err) {
-      console.error("매장 목록 로드 실패", err);
+// ── 가맹점 등록 모달 ──────────────────────────────────────────────
+function MerchantModal({ onClose, onSave, editing }) {
+  const [form, setForm] = useState(
+    editing || { name: "", region: "", place_id: "", instagram_tag: "" }
+  );
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = async () => {
+    if (!form.name || !form.place_id) {
+      alert("가맹점명과 네이버 플레이스 ID는 필수입니다.");
+      return;
     }
-  };
-
-  useEffect(() => { fetchMerchants(); }, []);
-
-  // 2. 분석 시작 (리포트 생성)
-  const handleAnalyze = async (id) => {
-    setSelectedId(id);
-    setLoading(true);
-    setReport(null);
-    try {
-      const res = await fetch(`${API_BASE_URL}/reports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merchantId: id })
-      });
-      const data = await res.json();
-      
-      if (data.status === 'completed') {
-        setReport(data);
-        setLoading(false);
-      } else {
-        checkStatus(id);
-      }
-    } catch (err) {
-      alert("분석 요청 중 오류가 발생했습니다.");
-      setLoading(false);
-    }
-  };
-
-  // 3. 상태 체크 (Polling)
-  const checkStatus = async (id) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/crawl-jobs/${id}`);
-      const data = await res.json();
-      if (data.status === 'completed') {
-        setReport(data);
-        setLoading(false);
-      } else {
-        setTimeout(() => checkStatus(id), 2000);
-      }
-    } catch (err) {
-      setLoading(false);
-    }
+    await onSave(form);
+    onClose();
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#000', color: '#fff', fontFamily: 'sans-serif' }}>
-      {/* 사이드바 */}
-      <div style={{ width: '250px', borderRight: '1px solid #333', padding: '20px' }}>
-        <h2 style={{ color: '#00f2ff' }}>AI매출업</h2>
-        <p style={{ fontSize: '12px', color: '#888' }}>가맹점 분석 시스템</p>
-        <div style={{ marginTop: '40px' }}>
-          <p style={{ fontSize: '13px', marginBottom: '10px' }}>가맹점 리스트</p>
-          {merchants.map(m => (
-            <div 
-              key={m.id} 
-              onClick={() => handleAnalyze(m.id)}
-              style={{ 
-                padding: '15px', borderRadius: '8px', backgroundColor: selectedId === m.id ? '#111' : 'transparent',
-                cursor: 'pointer', border: selectedId === m.id ? '1px solid #00f2ff' : '1px solid #333', marginBottom: '10px'
-              }}
-            >
-              <strong>{m.name}</strong> <span style={{ fontSize: '11px', color: '#888' }}>{m.region}</span>
-            </div>
-          ))}
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{editing ? "가맹점 수정" : "가맹점 등록"}</h2>
+          <button className="icon-btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="form-group">
+          <label>가맹점명 *</label>
+          <input value={form.name} onChange={set("name")} placeholder="예: 온빈 신정호" />
+        </div>
+        <div className="form-group">
+          <label>지역</label>
+          <input value={form.region} onChange={set("region")} placeholder="예: 충남 아산" />
+        </div>
+        <div className="form-group">
+          <label>네이버 플레이스 ID *</label>
+          <input value={form.place_id} onChange={set("place_id")} placeholder="예: 1164939221" />
+          <small>
+            네이버 지도에서 가맹점 검색 → URL의 숫자 부분<br />
+            https://m.place.naver.com/restaurant/<strong>1164939221</strong>/home
+          </small>
+        </div>
+        <div className="form-group">
+          <label>인스타그램 해시태그 (선택)</label>
+          <input value={form.instagram_tag} onChange={set("instagram_tag")} placeholder="예: 온빈신정호 (# 없이 입력)" />
+        </div>
+
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onClose}>취소</button>
+          <button className="btn-primary" onClick={handleSubmit}>저장</button>
         </div>
       </div>
-
-      {/* 메인 콘텐츠 */}
-      <div style={{ flex: 1, padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-        {!selectedId && <p style={{ color: '#888' }}>가맹점을 선택하면 분석이 시작됩니다.</p>}
-        
-        {loading && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ width: '40px', height: '40px', border: '4px solid #333', borderTop: '4px solid #00f2ff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
-            <p>데이터를 수집하고 있습니다...</p>
-          </div>
-        )}
-
-        {report && !loading && (
-          <div style={{ width: '100%', maxWidth: '600px', backgroundColor: '#111', padding: '30px', borderRadius: '15px', border: '1px solid #333' }}>
-            <h3 style={{ color: '#00f2ff', marginBottom: '20px' }}>분석 리포트</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-              <div style={{ padding: '15px', backgroundColor: '#222', borderRadius: '10px' }}>
-                <p style={{ fontSize: '12px', color: '#888' }}>언급 횟수</p>
-                <h4 style={{ fontSize: '24px', margin: '5px 0' }}>{report.mentionCount}건</h4>
-              </div>
-              <div style={{ padding: '15px', backgroundColor: '#222', borderRadius: '10px' }}>
-                <p style={{ fontSize: '12px', color: '#888' }}>긍정 비율</p>
-                <h4 style={{ fontSize: '24px', margin: '5px 0', color: '#00f2ff' }}>{report.positiveRate}%</h4>
-              </div>
-            </div>
-            <div style={{ marginBottom: '20px' }}>
-              <p style={{ fontSize: '12px', color: '#888' }}>주요 키워드</p>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-                {(report.keywords || []).map(kw => <span key={kw} style={{ padding: '4px 10px', backgroundColor: '#333', borderRadius: '15px', fontSize: '12px' }}>#{kw}</span>)}
-              </div>
-            </div>
-            <p style={{ lineHeight: '1.6', color: '#ccc' }}>{report.summary}</p>
-          </div>
-        )}
-      </div>
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
 
-export default App;
+// ── 진행 상태 오버레이 ─────────────────────────────────────────────
+function ProgressOverlay({ job }) {
+  return (
+    <div className="progress-overlay">
+      <div className="progress-card">
+        <div className="progress-icon">🔍</div>
+        <h3>{job.merchant_name} 분석 중</h3>
+        <p className="progress-msg">{job.message}</p>
+        <div className="progress-bar-wrap">
+          <div className="progress-bar" style={{ width: `${job.progress}%` }} />
+        </div>
+        <span className="progress-pct">{job.progress}%</span>
+      </div>
+    </div>
+  );
+}
+
+// ── 리포트 화면 ───────────────────────────────────────────────────
+function Report({ report, onBack }) {
+  const [tab, setTab] = useState("summary");
+  const s = report.summary;
+
+  const totalBlog = s.total_blog_reviews || 0;
+  const totalReceipt = s.total_receipt_reviews || 0;
+
+  return (
+    <div className="report-page">
+      <div className="report-header">
+        <button className="back-btn" onClick={onBack}>← 목록으로</button>
+        <div>
+          <h1>{report.merchant_name}</h1>
+          <span className="crawled-at">분석 시각: {new Date(report.crawled_at).toLocaleString("ko-KR")}</span>
+        </div>
+      </div>
+
+      {/* 요약 카드 */}
+      <div className="summary-grid">
+        <div className="stat-card">
+          <div className="stat-label">영수증리뷰</div>
+          <div className="stat-value">{totalReceipt.toLocaleString()}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">블로그리뷰</div>
+          <div className="stat-value">{totalBlog.toLocaleString()}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">네이버 검색 콘텐츠</div>
+          <div className="stat-value">{(s.naver_search_count || 0).toLocaleString()}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">인스타그램 콘텐츠</div>
+          <div className="stat-value">{(s.instagram_count || 0).toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* 광고 판별 요약 */}
+      <div className="ad-summary">
+        <h2>광고 판별 결과</h2>
+        <div className="ad-grid">
+          <div className="ad-section">
+            <h3>📋 블로그리뷰 ({totalBlog}건)</h3>
+            <div className="ad-bars">
+              <AdBar label="광고" count={s.blog_ad_count} total={totalBlog} color="var(--ad)" />
+              <AdBar label="내돈내산" count={s.blog_organic_count} total={totalBlog} color="var(--organic)" />
+              <AdBar label="판별불가" count={s.blog_unknown_count} total={totalBlog} color="var(--unknown)" />
+            </div>
+          </div>
+          <div className="ad-section">
+            <h3>🧾 영수증리뷰 ({totalReceipt}건)</h3>
+            <div className="ad-bars">
+              <AdBar label="광고" count={s.receipt_ad_count} total={totalReceipt} color="var(--ad)" />
+              <AdBar label="내돈내산" count={s.receipt_organic_count} total={totalReceipt} color="var(--organic)" />
+              <AdBar label="판별불가" count={totalReceipt - (s.receipt_ad_count || 0) - (s.receipt_organic_count || 0)} total={totalReceipt} color="var(--unknown)" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 탭 */}
+      <div className="tab-bar">
+        {["summary", "receipt", "blog"].map((t) => (
+          <button key={t} className={`tab-btn ${tab === t ? "active" : ""}`} onClick={() => setTab(t)}>
+            {t === "summary" ? "전체 요약" : t === "receipt" ? "영수증리뷰" : "블로그리뷰"}
+          </button>
+        ))}
+      </div>
+
+      {/* 탭 컨텐츠 */}
+      {tab === "receipt" && (
+        <ReviewList reviews={report.naver_receipt_reviews} label="영수증리뷰" />
+      )}
+      {tab === "blog" && (
+        <ReviewList reviews={report.naver_blog_reviews} label="블로그리뷰" showLink />
+      )}
+      {tab === "summary" && (
+        <div className="summary-detail">
+          <h3>📊 플랫폼별 상세</h3>
+          <table className="detail-table">
+            <thead>
+              <tr><th>플랫폼</th><th>총 건수</th><th>광고</th><th>내돈내산</th><th>판별불가</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>네이버 블로그리뷰</td>
+                <td>{totalBlog}</td>
+                <td className="ad-cell">{s.blog_ad_count || 0}</td>
+                <td className="organic-cell">{s.blog_organic_count || 0}</td>
+                <td className="unknown-cell">{s.blog_unknown_count || 0}</td>
+              </tr>
+              <tr>
+                <td>네이버 영수증리뷰</td>
+                <td>{totalReceipt}</td>
+                <td className="ad-cell">{s.receipt_ad_count || 0}</td>
+                <td className="organic-cell">{s.receipt_organic_count || 0}</td>
+                <td className="unknown-cell">{totalReceipt - (s.receipt_ad_count || 0) - (s.receipt_organic_count || 0)}</td>
+              </tr>
+              <tr>
+                <td>네이버 검색결과</td>
+                <td colSpan={4}>{(s.naver_search_count || 0).toLocaleString()} 건</td>
+              </tr>
+              <tr>
+                <td>인스타그램</td>
+                <td colSpan={4}>{(s.instagram_count || 0).toLocaleString()} 건</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdBar({ label, count, total, color }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div className="ad-bar-row">
+      <span className="ad-bar-label">{label}</span>
+      <div className="ad-bar-track">
+        <div className="ad-bar-fill" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <span className="ad-bar-count">{count}건 ({pct}%)</span>
+    </div>
+  );
+}
+
+function ReviewList({ reviews, label, showLink }) {
+  if (!reviews || reviews.length === 0) {
+    return <div className="empty">수집된 {label} 데이터가 없습니다.</div>;
+  }
+  return (
+    <div className="review-list">
+      <h3>{label} ({reviews.length}건)</h3>
+      {reviews.map((r, i) => (
+        <div key={i} className="review-card" style={{ borderLeftColor: adColor(r.ad_type) }}>
+          <div className="review-top">
+            <span className="ad-badge" style={{ background: adColor(r.ad_type) + "22", color: adColor(r.ad_type), border: `1px solid ${adColor(r.ad_type)}` }}>
+              {adBadge(r.ad_type)}
+            </span>
+            {r.ad_basis && <span className="ad-basis">근거: {r.ad_basis}</span>}
+          </div>
+          {r.title && r.title !== r.text && <div className="review-title">{r.title}</div>}
+          <p className="review-text">{r.text || "(내용 없음)"}</p>
+          {showLink && r.url && (
+            <a href={r.url} target="_blank" rel="noopener noreferrer" className="blog-link">
+              원문 보기 →
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── 메인 앱 ───────────────────────────────────────────────────────
+export default function App() {
+  const [merchants, setMerchants] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [activeJob, setActiveJob] = useState(null);
+  const [viewReport, setViewReport] = useState(null);
+  const [reports, setReports] = useState({});
+  const pollRef = useRef(null);
+
+  // 가맹점 목록 로드
+  const loadMerchants = async () => {
+    try {
+      const res = await fetch(`${API}/api/merchants`);
+      const data = await res.json();
+      setMerchants(data);
+    } catch (e) {
+      console.error("가맹점 목록 로드 실패", e);
+    }
+  };
+
+  useEffect(() => { loadMerchants(); }, []);
+
+  // 가맹점 저장
+  const saveMerchant = async (form) => {
+    try {
+      const method = editing ? "PUT" : "POST";
+      const url = editing ? `${API}/api/merchants/${editing.id}` : `${API}/api/merchants`;
+      await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      await loadMerchants();
+      setEditing(null);
+    } catch (e) {
+      alert("저장 실패: " + e.message);
+    }
+  };
+
+  // 가맹점 삭제
+  const deleteMerchant = async (id) => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    await fetch(`${API}/api/merchants/${id}`, { method: "DELETE" });
+    await loadMerchants();
+  };
+
+  // 분석 실행
+  const startCrawl = async (merchant) => {
+    try {
+      const res = await fetch(`${API}/api/crawl`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ merchant_id: merchant.id }),
+      });
+      const { job_id } = await res.json();
+
+      setActiveJob({ id: job_id, merchant_name: merchant.name, status: "pending", progress: 0, message: "대기 중..." });
+
+      // 폴링 시작
+      pollRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`${API}/api/crawl-jobs/${job_id}`);
+          const job = await statusRes.json();
+          setActiveJob(job);
+
+          if (job.status === "done") {
+            clearInterval(pollRef.current);
+            // 리포트 로드
+            const rRes = await fetch(`${API}/api/reports/${merchant.id}`);
+            const rData = await rRes.json();
+            setReports((prev) => ({ ...prev, [merchant.id]: rData }));
+            setTimeout(() => {
+              setActiveJob(null);
+              setViewReport(rData);
+            }, 800);
+          } else if (job.status === "error") {
+            clearInterval(pollRef.current);
+            alert("분석 실패: " + job.message);
+            setActiveJob(null);
+          }
+        } catch (e) {
+          console.error("폴링 오류", e);
+        }
+      }, 3000);
+    } catch (e) {
+      alert("분석 시작 실패: " + e.message);
+    }
+  };
+
+  // 리포트 화면
+  if (viewReport) {
+    return <Report report={viewReport} onBack={() => setViewReport(null)} />;
+  }
+
+  return (
+    <div className="app">
+      {/* 헤더 */}
+      <header className="header">
+        <div className="header-inner">
+          <div className="logo">
+            <span className="logo-icon">📡</span>
+            <span className="logo-text">SNS 분석 솔루션</span>
+          </div>
+          <p className="logo-sub">가맹점 SNS 크롤링 · 광고/내돈내산 자동 판별</p>
+        </div>
+      </header>
+
+      <main className="main">
+        {/* 1단계: 가맹점 등록 */}
+        <section className="section">
+          <div className="section-header">
+            <div>
+              <h2>① 가맹점 등록</h2>
+              <p>분석할 가맹점의 네이버 플레이스 ID를 등록하세요</p>
+            </div>
+            <button className="btn-primary" onClick={() => { setEditing(null); setShowModal(true); }}>
+              + 가맹점 추가
+            </button>
+          </div>
+
+          {merchants.length === 0 ? (
+            <div className="empty-state">
+              <span>🏪</span>
+              <p>등록된 가맹점이 없습니다<br />'가맹점 추가' 버튼으로 시작하세요</p>
+            </div>
+          ) : (
+            <div className="merchant-list">
+              {merchants.map((m) => (
+                <div key={m.id} className="merchant-card">
+                  <div className="merchant-info">
+                    <div className="merchant-name">{m.name}</div>
+                    <div className="merchant-meta">
+                      <span>📍 {m.region || "지역 미입력"}</span>
+                      <span>🔑 플레이스 ID: {m.place_id}</span>
+                      {m.instagram_tag && <span>📸 #{m.instagram_tag}</span>}
+                    </div>
+                    {reports[m.id] && (
+                      <div className="report-badge" onClick={() => setViewReport(reports[m.id])}>
+                        📊 최근 리포트 보기 →
+                      </div>
+                    )}
+                  </div>
+                  <div className="merchant-actions">
+                    <button className="btn-run" onClick={() => startCrawl(m)}>
+                      🔍 분석 실행
+                    </button>
+                    <button className="btn-edit" onClick={() => { setEditing(m); setShowModal(true); }}>수정</button>
+                    <button className="btn-delete" onClick={() => deleteMerchant(m.id)}>삭제</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* 분석 절차 안내 */}
+        <section className="section flow-section">
+          <h2>분석 절차</h2>
+          <div className="flow-steps">
+            {[
+              { n: "1", icon: "🏪", label: "가맹점 등록", desc: "네이버 플레이스 ID 입력" },
+              { n: "2", icon: "▶️", label: "분석 실행", desc: "가맹점 선택 후 분석 시작" },
+              { n: "3", icon: "🕷️", label: "크롤링", desc: "영수증리뷰·블로그리뷰·네이버검색·인스타그램 수집" },
+              { n: "4", icon: "📊", label: "리포트", desc: "광고/내돈내산/판별불가 분류 결과 확인" },
+            ].map((s) => (
+              <div key={s.n} className="flow-step">
+                <div className="step-num">{s.n}</div>
+                <div className="step-icon">{s.icon}</div>
+                <div className="step-label">{s.label}</div>
+                <div className="step-desc">{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 분석 대상 안내 */}
+        <section className="section">
+          <h2>분석 대상</h2>
+          <div className="target-grid">
+            {[
+              { icon: "🧾", title: "네이버 영수증리뷰", desc: "실제 방문 영수증 인증 리뷰 수집 및 광고 여부 판별" },
+              { icon: "📝", title: "네이버 블로그리뷰", desc: "플레이스 블로그리뷰 → 원문 블로그까지 방문하여 광고 문구 판별" },
+              { icon: "🔍", title: "네이버 검색결과", desc: "가맹점 검색 시 노출되는 콘텐츠 총 건수 집계" },
+              { icon: "📸", title: "인스타그램", desc: "해시태그 검색 결과 콘텐츠 수 집계" },
+            ].map((t) => (
+              <div key={t.title} className="target-card">
+                <div className="target-icon">{t.icon}</div>
+                <div className="target-title">{t.title}</div>
+                <div className="target-desc">{t.desc}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      {activeJob && <ProgressOverlay job={activeJob} />}
+      {showModal && (
+        <MerchantModal
+          editing={editing}
+          onClose={() => { setShowModal(false); setEditing(null); }}
+          onSave={saveMerchant}
+        />
+      )}
+    </div>
+  );
+}
