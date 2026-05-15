@@ -345,42 +345,112 @@ export default function App() {
 
   // 분석 실행
   const startCrawl = async (merchant) => {
+    // 기존 폴링 정리
+    if (pollRef.current) clearInterval(pollRef.current);
+
     try {
       const res = await fetch(`${API}/api/crawl`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ merchant_id: merchant.id }),
       });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `서버 오류 (${res.status})`);
+      }
+
       const { job_id } = await res.json();
+      setActiveJob({
+        id: job_id,
+        merchant_name: merchant.name,
+        status: "pending",
+        progress: 0,
+        message: "분석 시작 중...",
+      });
 
-      setActiveJob({ id: job_id, merchant_name: merchant.name, status: "pending", progress: 0, message: "대기 중..." });
+      let failCount = 0;
+      const MAX_FAIL = 5;       // 연속 실패 5회까지 허용
+      const MAX_POLL = 200;     // 최대 200회 (약 10분)
+      let pollCount = 0;
 
-      // 폴링 시작
       pollRef.current = setInterval(async () => {
+        pollCount++;
+
+        // 최대 시간 초과
+        if (pollCount > MAX_POLL) {
+          clearInterval(pollRef.current);
+          setActiveJob(null);
+          alert("분석 시간이 초과되었습니다 (10분). Railway 서버 로그를 확인해 주세요.");
+          return;
+        }
+
         try {
           const statusRes = await fetch(`${API}/api/crawl-jobs/${job_id}`);
+
+          // 404: Railway 재배포로 job이 사라진 경우
+          if (statusRes.status === 404) {
+            failCount++;
+            setActiveJob(prev => ({
+              ...prev,
+              message: `서버 연결 확인 중... (${failCount}/${MAX_FAIL})`,
+            }));
+            if (failCount >= MAX_FAIL) {
+              clearInterval(pollRef.current);
+              setActiveJob(null);
+              alert(
+                "분석 작업을 찾을 수 없습니다.\n\n" +
+                "원인: Railway 서버가 재배포되어 작업이 초기화되었을 수 있습니다.\n" +
+                "해결: 잠시 후 다시 '분석 실행'을 눌러주세요."
+              );
+            }
+            return;
+          }
+
+          if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
+
           const job = await statusRes.json();
+          failCount = 0; // 성공 시 실패 카운트 초기화
           setActiveJob(job);
 
           if (job.status === "done") {
             clearInterval(pollRef.current);
-            // 리포트 로드
             const rRes = await fetch(`${API}/api/reports/${merchant.id}`);
+            if (!rRes.ok) throw new Error("리포트 로드 실패");
             const rData = await rRes.json();
-            setReports((prev) => ({ ...prev, [merchant.id]: rData }));
+            setReports(prev => ({ ...prev, [merchant.id]: rData }));
             setTimeout(() => {
               setActiveJob(null);
               setViewReport(rData);
-            }, 800);
+            }, 600);
+
           } else if (job.status === "error") {
             clearInterval(pollRef.current);
-            alert("분석 실패: " + job.message);
             setActiveJob(null);
+            alert("분석 실패: " + job.message);
           }
+
         } catch (e) {
+          failCount++;
           console.error("폴링 오류", e);
+          setActiveJob(prev => ({
+            ...prev,
+            message: `서버 연결 재시도 중... (${failCount}/${MAX_FAIL})`,
+          }));
+          if (failCount >= MAX_FAIL) {
+            clearInterval(pollRef.current);
+            setActiveJob(null);
+            alert(
+              "서버 연결에 실패했습니다.\n\n" +
+              "확인 사항:\n" +
+              "1. Railway 백엔드가 정상 실행 중인지 확인\n" +
+              "2. Vercel 환경변수 VITE_API_BASE_URL이 올바른지 확인\n\n" +
+              "잠시 후 다시 시도해 주세요."
+            );
+          }
         }
       }, 3000);
+
     } catch (e) {
       alert("분석 시작 실패: " + e.message);
     }
