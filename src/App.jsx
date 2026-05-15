@@ -71,7 +71,12 @@ function MerchantModal({ onClose, onSave, editing }) {
 // ── 진행 상태 오버레이 ─────────────────────────────────────────────
 function ProgressOverlay({ job }) {
   const pct = job.progress || 0;
-  const isSlowPhase = pct >= 58 && pct < 75;  // 블로그 원문 방문 구간
+
+  const hint =
+    pct >= 10 && pct < 40 ? "📋 더보기 버튼을 반복 클릭하며 영수증리뷰를 수집합니다" :
+    pct >= 43 && pct < 57 ? "📝 블로그리뷰 목록을 불러오는 중입니다" :
+    pct >= 57 && pct < 75 ? "🔍 블로그 원문을 하나씩 방문해 광고 문구를 확인합니다\n건당 약 8초 소요 · 잠시 기다려 주세요" :
+    null;
 
   return (
     <div className="progress-overlay">
@@ -83,10 +88,9 @@ function ProgressOverlay({ job }) {
           <div className="progress-bar" style={{ width: `${pct}%` }} />
         </div>
         <span className="progress-pct">{pct}%</span>
-        {isSlowPhase && (
+        {hint && (
           <p className="progress-hint">
-            📝 블로그 원문을 하나씩 방문하며 광고 문구를 확인합니다<br/>
-            건당 약 8초 소요 · 잠시 기다려 주세요
+            {hint.split("\n").map((line, i) => <span key={i}>{line}<br/></span>)}
           </p>
         )}
       </div>
