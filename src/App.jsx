@@ -73,7 +73,7 @@ function ProgressOverlay({ job }) {
   const pct = job.progress || 0;
 
   const hint =
-    pct >= 10 && pct < 40 ? "📋 더보기 버튼을 반복 클릭하며 영수증리뷰를 수집합니다" :
+    pct >= 10 && pct < 40 ? `📋 더보기 버튼을 반복 클릭하며 영수증리뷰를 수집합니다\n(리뷰 239건 기준 약 24회 클릭 · 5~8분 소요)` :
     pct >= 43 && pct < 57 ? "📝 블로그리뷰 목록을 불러오는 중입니다" :
     pct >= 57 && pct < 75 ? "🔍 블로그 원문을 하나씩 방문해 광고 문구를 확인합니다\n건당 약 8초 소요 · 잠시 기다려 주세요" :
     null;
@@ -106,6 +106,8 @@ function Report({ report, onBack }) {
   const totalBlog = s.total_blog_reviews || 0;
   const totalReceipt = s.total_receipt_reviews || 0;
   const officialReceipt = s.official_receipt_count || 0;
+  const officialTextReceipt = s.official_receipt_text_count || officialReceipt;
+  const officialKwReceipt = s.official_receipt_keyword || 0;
   const officialBlog = s.official_blog_count || 0;
 
   return (
@@ -124,11 +126,14 @@ function Report({ report, onBack }) {
           <span className="banner-icon">📌</span>
           <div className="banner-body">
             <span className="banner-title">네이버 플레이스 공식 수치</span>
-            <span className="banner-vals">
-              방문자리뷰 <strong>{officialReceipt.toLocaleString()}건</strong>
-              &nbsp;·&nbsp;
-              블로그리뷰 <strong>{officialBlog.toLocaleString()}건</strong>
-            </span>
+            <div className="banner-vals">
+              <span>방문자리뷰 <strong>{officialReceipt.toLocaleString()}건</strong></span>
+              <span className="banner-sub-row">
+                <span className="banner-sub">📷 사진·영상 <b>{officialTextReceipt.toLocaleString()}건</b></span>
+                <span className="banner-sub">🏷️ 키워드·별점 <b>{officialKwReceipt.toLocaleString()}건</b></span>
+              </span>
+              <span>블로그리뷰 <strong>{officialBlog.toLocaleString()}건</strong></span>
+            </div>
           </div>
           <div className="banner-collected">
             <span>실제 수집</span>
@@ -140,18 +145,20 @@ function Report({ report, onBack }) {
       {/* 요약 카드 */}
       <div className="summary-grid">
         <div className="stat-card">
-          <div className="stat-label">영수증리뷰</div>
-          <div className="stat-value">{totalReceipt.toLocaleString()}</div>
-          {officialReceipt > 0 && totalReceipt < officialReceipt && (
-            <div className="stat-sub">전체 {officialReceipt.toLocaleString()}건 중 수집</div>
+          <div className="stat-label">방문자리뷰 (전체)</div>
+          <div className="stat-value">{officialReceipt.toLocaleString()}</div>
+          {officialKwReceipt > 0 && (
+            <div className="stat-breakdown">
+              <span>📷 사진·영상 {officialTextReceipt}건</span>
+              <span>🏷️ 키워드·별점 {officialKwReceipt}건</span>
+            </div>
           )}
+          <div className="stat-sub">수집 {totalReceipt}건</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">블로그리뷰</div>
-          <div className="stat-value">{totalBlog.toLocaleString()}</div>
-          {officialBlog > 0 && totalBlog < officialBlog && (
-            <div className="stat-sub">전체 {officialBlog.toLocaleString()}건 중 수집</div>
-          )}
+          <div className="stat-value">{(officialBlog || totalBlog).toLocaleString()}</div>
+          {officialBlog > 0 && <div className="stat-sub">수집 {totalBlog}건</div>}
         </div>
         <div className="stat-card">
           <div className="stat-label">네이버 검색 콘텐츠</div>
@@ -206,6 +213,7 @@ function Report({ report, onBack }) {
             <thead>
               <tr>
                 <th>플랫폼</th>
+                <th>공식 전체</th>
                 <th>수집 건수</th>
                 <th>🔴 광고</th>
                 <th>🟢 내돈내산</th>
@@ -214,32 +222,42 @@ function Report({ report, onBack }) {
             </thead>
             <tbody>
               <tr>
-                <td>네이버 블로그리뷰
-                  {officialBlog > 0 && <span className="official-badge">전체 {officialBlog}건</span>}
-                </td>
+                <td>네이버 블로그리뷰</td>
+                <td>{(officialBlog||totalBlog).toLocaleString()}</td>
                 <td><strong>{totalBlog}</strong></td>
                 <td className="ad-cell">{s.blog_ad_count||0}</td>
                 <td className="organic-cell">{s.blog_organic_count||0}</td>
                 <td className="unknown-cell">{s.blog_unknown_count||0}</td>
               </tr>
               <tr>
-                <td>네이버 영수증리뷰
-                  {officialReceipt > 0 && <span className="official-badge">전체 {officialReceipt}건</span>}
-                </td>
+                <td>네이버 방문자리뷰 (전체)</td>
+                <td>{officialReceipt.toLocaleString()}</td>
                 <td><strong>{totalReceipt}</strong></td>
                 <td className="ad-cell">{s.receipt_ad_count||0}</td>
                 <td className="organic-cell">{s.receipt_organic_count||0}</td>
-                <td className="unknown-cell">
-                  {s.receipt_unknown_count ?? (totalReceipt-(s.receipt_ad_count||0)-(s.receipt_organic_count||0))}
-                </td>
+                <td className="unknown-cell">{s.receipt_unknown_count||0}</td>
               </tr>
+              {officialKwReceipt > 0 && <>
+              <tr className="sub-row">
+                <td>&nbsp;&nbsp;└ 📷 사진·영상 리뷰</td>
+                <td>{officialTextReceipt}</td>
+                <td>{totalReceipt}</td>
+                <td colSpan={3} className="unknown-cell">수집 대상</td>
+              </tr>
+              <tr className="sub-row">
+                <td>&nbsp;&nbsp;└ 🏷️ 키워드·별점 리뷰</td>
+                <td>{officialKwReceipt}</td>
+                <td>-</td>
+                <td colSpan={3} className="unknown-cell">텍스트 없음 (수집 제외)</td>
+              </tr>
+              </>}
               <tr>
                 <td>네이버 검색결과 (블로그)</td>
-                <td colSpan={4}>{(s.naver_search_count||0).toLocaleString()} 건</td>
+                <td colSpan={5}>{(s.naver_search_count||0).toLocaleString()} 건</td>
               </tr>
               <tr>
                 <td>인스타그램</td>
-                <td colSpan={4}>{(s.instagram_count||0).toLocaleString()} 건</td>
+                <td colSpan={5}>{(s.instagram_count||0).toLocaleString()} 건</td>
               </tr>
             </tbody>
           </table>

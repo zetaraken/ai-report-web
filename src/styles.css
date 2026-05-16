@@ -382,6 +382,31 @@ a:hover { text-decoration: underline; }
   border-top: 1px solid var(--border); padding-top: 10px;
 }
 
+/* ── sub-row (테이블 하위 행) ───────────────────────────── */
+.sub-row td { 
+  font-size: 12px; color: var(--text-muted); 
+  padding: 6px 12px; border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+
+/* ── banner-sub (배너 내 상세 구분) ─────────────────────── */
+.banner-sub-row {
+  display: flex; gap: 16px; margin: 4px 0;
+}
+.banner-sub {
+  font-size: 12px; color: var(--text-muted);
+}
+.banner-sub b { color: var(--text); font-weight: 600; }
+.banner-vals { display: flex; flex-direction: column; gap: 2px; }
+.banner-vals span { font-size: 14px; }
+.banner-vals strong { color: var(--primary); font-weight: 700; }
+
+/* ── stat-breakdown ──────────────────────────────────────── */
+.stat-breakdown {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: 6px; font-size: 11px; color: var(--text-muted);
+}
+
 /* ── 반응형 ─────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .main, .report-page { padding: 16px; }
