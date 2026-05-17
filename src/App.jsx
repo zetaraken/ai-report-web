@@ -182,16 +182,7 @@ function Report({ report, onBack }) {
               <AdBar label="판별불가" count={s.blog_unknown_count} total={totalBlog} color="var(--unknown)" />
             </div>
           </div>
-          <div className="ad-section">
-            <h3>🧾 영수증리뷰 ({totalReceipt}건 분석)</h3>
-            <div className="ad-bars">
-              <AdBar label="광고"    count={s.receipt_ad_count}      total={totalReceipt} color="var(--ad)" />
-              <AdBar label="내돈내산" count={s.receipt_organic_count} total={totalReceipt} color="var(--organic)" />
-              <AdBar label="판별불가"
-                count={s.receipt_unknown_count ?? (totalReceipt-(s.receipt_ad_count||0)-(s.receipt_organic_count||0))}
-                total={totalReceipt} color="var(--unknown)" />
-            </div>
-          </div>
+
         </div>
       </div>
 
@@ -233,9 +224,7 @@ function Report({ report, onBack }) {
                 <td>네이버 방문자리뷰 (전체)</td>
                 <td>{officialReceipt.toLocaleString()}</td>
                 <td><strong>{totalReceipt}</strong></td>
-                <td className="ad-cell">{s.receipt_ad_count||0}</td>
-                <td className="organic-cell">{s.receipt_organic_count||0}</td>
-                <td className="unknown-cell">{s.receipt_unknown_count||0}</td>
+                <td colSpan={3} className="unknown-cell">해당 없음</td>
               </tr>
               {officialKwReceipt > 0 && <>
               <tr className="sub-row">
