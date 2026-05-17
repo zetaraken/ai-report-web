@@ -17,7 +17,7 @@ const adBadge = (type) => {
 // ── 가맹점 등록 모달 ──────────────────────────────────────────────
 function MerchantModal({ onClose, onSave, editing }) {
   const [form, setForm] = useState(
-    editing || { name: "", region: "", place_id: "", instagram_tag: "" }
+    editing || { name: "", place_id: "", addr_keyword: "", instagram_tag: "" }
   );
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -43,16 +43,9 @@ function MerchantModal({ onClose, onSave, editing }) {
           <input value={form.name} onChange={set("name")} placeholder="예: 온빈 신정호" />
         </div>
         <div className="form-group">
-          <label>지역</label>
-          <input value={form.region} onChange={set("region")} placeholder="예: 충남 아산" />
-        </div>
-        <div className="form-group">
-          <label>네이버 플레이스 ID *</label>
-          <input value={form.place_id} onChange={set("place_id")} placeholder="예: 1164939221" />
-          <small>
-            네이버 지도에서 가맹점 검색 → URL의 숫자 부분<br />
-            https://m.place.naver.com/restaurant/<strong>1164939221</strong>/home
-          </small>
+          <label>동네명 (블로그 검색 필터용)</label>
+          <input value={form.addr_keyword || ""} onChange={set("addr_keyword")} placeholder="예: 방교동, 역삼동, 신정호동" />
+          <small>네이버 플레이스 주소의 읍면동명 — 입력 시 블로그 검색 정확도가 높아집니다</small>
         </div>
         <div className="form-group">
           <label>인스타그램 해시태그 (선택)</label>
@@ -514,7 +507,7 @@ export default function App() {
                   <div className="merchant-info">
                     <div className="merchant-name">{m.name}</div>
                     <div className="merchant-meta">
-                      <span>📍 {m.region || "지역 미입력"}</span>
+                      <span>📍 {m.addr_keyword || m.region || "동네명 미입력"}</span>
                       <span>🔑 플레이스 ID: {m.place_id}</span>
                       {m.instagram_tag && <span>📸 #{m.instagram_tag}</span>}
                     </div>
