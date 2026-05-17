@@ -43,6 +43,14 @@ function MerchantModal({ onClose, onSave, editing }) {
           <input value={form.name} onChange={set("name")} placeholder="예: 온빈 신정호" />
         </div>
         <div className="form-group">
+          <label>네이버 플레이스 ID *</label>
+          <input value={form.place_id} onChange={set("place_id")} placeholder="예: 1164939221" />
+          <small>
+            네이버 지도에서 가맹점 검색 → URL의 숫자 부분<br />
+            https://m.place.naver.com/restaurant/<strong>1164939221</strong>/home
+          </small>
+        </div>
+        <div className="form-group">
           <label>동네명 (블로그 검색 필터용)</label>
           <input value={form.addr_keyword || ""} onChange={set("addr_keyword")} placeholder="예: 방교동, 역삼동, 신정호동" />
           <small>네이버 플레이스 주소의 읍면동명 — 입력 시 블로그 검색 정확도가 높아집니다</small>
