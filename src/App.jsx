@@ -183,9 +183,68 @@ function Report({ report, onBack }) {
               <AdBar label="판별불가" count={s.blog_unknown_count} total={totalBlog} color="var(--unknown)" />
             </div>
           </div>
-
         </div>
       </div>
+
+      {/* 핵심 키워드 Top 10 */}
+      {s.top_keywords_blog && s.top_keywords_blog.length > 0 && (
+        <div className="ad-summary keyword-section">
+          <h2>🔑 블로그 핵심 키워드 Top 10</h2>
+          <div style={{ display:"flex", flexDirection:"column", gap:"8px", marginTop:"12px" }}>
+            {s.top_keywords_blog.map((kw, i) => {
+              const maxCount = s.top_keywords_blog[0].count;
+              const pct = Math.round((kw.count / maxCount) * 100);
+              return (
+                <div key={i} className="keyword-row">
+                  <span className="keyword-rank">#{i+1}</span>
+                  <span className="keyword-word">{kw.word}</span>
+                  <div className="keyword-track">
+                    <div className="keyword-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="keyword-count">{kw.count}회</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 월별 블로그 언급량 추이 */}
+      {s.monthly_blog_stats && s.monthly_blog_stats.length > 0 && (
+        <div className="ad-summary">
+          <h2>📅 월별 블로그 언급량 추이</h2>
+          <div className="monthly-chart">
+            {(() => {
+              const maxTotal = Math.max(...s.monthly_blog_stats.map(m => m.total), 1);
+              return s.monthly_blog_stats.map((m, i) => {
+                const heightPct = Math.round((m.total / maxTotal) * 100);
+                const adPct    = m.total > 0 ? Math.round((m.ad / m.total) * 100) : 0;
+                const orgPct   = m.total > 0 ? Math.round((m.organic / m.total) * 100) : 0;
+                const unknPct  = 100 - adPct - orgPct;
+                return (
+                  <div key={i} className="monthly-col">
+                    <span className="monthly-count">{m.total}건</span>
+                    <div className="monthly-bar-wrap">
+                      <div className="monthly-bar-stack" style={{ height: `${Math.max(heightPct, 4)}%` }}>
+                        <div style={{ flex: adPct,   background: "var(--ad)" }} />
+                        <div style={{ flex: orgPct,  background: "var(--organic)" }} />
+                        <div style={{ flex: unknPct, background: "var(--unknown)" }} />
+                      </div>
+                    </div>
+                    <span className="monthly-label">{m.month.slice(2).replace("-",".")}</span>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+          <div className="monthly-legend">
+            <span style={{color:"var(--ad)"}}>● 광고</span>
+            <span style={{color:"var(--organic)"}}>● 내돈내산</span>
+            <span style={{color:"var(--unknown)"}}>● 판별불가</span>
+            <span>/ 날짜 미확인 게시글은 월별 집계 제외</span>
+          </div>
+        </div>
+      )}
 
       {/* 탭 */}
       <div className="tab-bar">
