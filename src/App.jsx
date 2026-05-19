@@ -343,6 +343,24 @@ function Report({ report, onBack }) {
             </div>
           </div>
 
+          {/* 핵심 연관어 카드 */}
+          <div className="rpt-card">
+            <div className="rpt-card-header">
+              <div className="rpt-en-title">KEYWORD ANALYSIS</div>
+              <h2>핵심 연관어 분석</h2>
+            </div>
+            {kwBlog.length > 0 ? (
+              <>
+                {/* TOP 키워드 */}
+                <div className="rpt-kw-top-wrap">
+                  <div className="rpt-kw-top-title"># TOP 키워드</div>
+                  <div className="rpt-kw-pills">
+                    {(kwAnalysis?.top_all || kwBlog).slice(0,15).map((kw,i)=>(
+                      <span key={i} className="rpt-kw-pill-dark">#{kw.word}</span>
+                    ))}
+                  </div>
+                </div>
+
                 {/* 카테고리별 카드 */}
                 {kwAnalysis && (kwAnalysis.menu.length > 0 || kwAnalysis.location.length > 0 || kwAnalysis.experience.length > 0) && (
                   <div className="rpt-kw-cat-grid">
@@ -388,14 +406,14 @@ function Report({ report, onBack }) {
                   </div>
                 )}
 
-                {/* 주요 분석 키워드 Top 5 — 카테고리 균형 선정 */}
+                {/* 주요 분석 키워드 Top 5 */}
                 {(() => {
-                  const top5 = kwAnalysis?.top5 || (kwAnalysis?.top_all || kwBlog).slice(0,5).map((k,i)=>({...k,category:"핵심 키워드"}));
+                  const top5 = kwAnalysis?.top5 || (kwAnalysis?.top_all || kwBlog).slice(0,5).map((k)=>({...k,category:"핵심 키워드"}));
                   const catDesc = {
                     "메뉴 키워드": (w,c) => `${c}회 언급. 고객이 가장 자주 언급하는 메뉴 키워드로, 방문 동기와 주문 결정에 직접적으로 영향을 주는 핵심 표현입니다.`,
                     "위치 키워드": (w,c) => `${c}회 언급. 매장 위치·접근성과 연결되는 지역 기반 키워드로, 네이버 검색 노출과 로컬 발견 가능성을 높입니다.`,
                     "경험 키워드": (w,c) => `${c}회 언급. 방문 경험·서비스·예약 등 고객 이용 맥락이 반복 언급되는 키워드로, 재방문 유도에 유리합니다.`,
-                    "핵심 키워드": (w,c) => `${c}회 언급. 블로그·영수증 리뷰 전체에서 반복 등장하는 핵심 표현으로, 온라인 마케팅 콘텐츠 기획 시 우선 활용을 권장합니다.`,
+                    "핵심 키워드": (w,c) => `${c}회 언급. 블로그·영수증 리뷰에서 반복 등장하는 핵심 표현으로, 온라인 마케팅 콘텐츠 기획 시 우선 활용을 권장합니다.`,
                   };
                   return (
                     <div className="rpt-kw-top5-wrap">
