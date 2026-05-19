@@ -267,7 +267,7 @@ function Report({ report, onBack }) {
       {/* ── 감성분석 + 키워드 ── */}
       {sent.positive_pct != null && (
         <div className="rpt-2col">
-          {/* 감성 분석 — Image1 스타일 */}
+          {/* 감성 분석 */}
           <div className="rpt-card">
             <div className="rpt-card-header">
               <div className="rpt-en-title">SENTIMENT ANALYSIS</div>
@@ -288,7 +288,7 @@ function Report({ report, onBack }) {
               )}
               {sent.pos_voc?.length > 0 && (
                 <p className="rpt-sent-v2-voc">
-                  <b>주요 의견:</b> {sent.pos_voc.map((v,i)=>`"${v.slice(0,20)}"`).join(", ")}
+                  <b>주요 의견:</b> {sent.pos_voc.slice(0,3).map(v => `"${v.replace(/이전다음.*/,"").trim().slice(0,25)}"`).join(", ")}
                 </p>
               )}
             </div>
@@ -301,9 +301,7 @@ function Report({ report, onBack }) {
                 <span className="rpt-sent-v2-pct">({sent.neutral_pct}%)</span>
               </div>
               <p className="rpt-sent-v2-kw">
-                <b>대표 키워드:</b> {sent.neu_interp
-                  ? sent.neu_interp.replace(/중립 반응이 \d+%.*이며, /,"").replace(/대부분의 언급이 명확한 감성을 포함합니다./,"").trim() || "정보 전달형 언급"
-                  : "위치, 영업시간, 예약 정보 등 정보 전달형 언급"}
+                <b>대표 키워드:</b> 위치·영업시간·예약링크·정보공유 등 정보 전달형 언급 ({sent.neutral_count}건)
               </p>
             </div>
 
@@ -314,60 +312,37 @@ function Report({ report, onBack }) {
                 <span className="rpt-sent-v2-label">부정</span>
                 <span className="rpt-sent-v2-pct">({sent.negative_pct}%)</span>
               </div>
-              {(s.neg_keywords||[]).length > 0 && (
-                <p className="rpt-sent-v2-kw">
-                  <b>대표 키워드:</b> {(s.neg_keywords||[]).slice(0,4).map(k=>k.word).join(", ")}
-                </p>
-              )}
-              {sent.negative_pct <= 5 && (
-                <p className="rpt-sent-v2-note"><b>비고:</b> 인기 매장에서 공통적으로 나타나는 현상으로, 운영 관리로 완화 가능합니다.</p>
-              )}
+              {(s.neg_keywords||[]).length > 0
+                ? <p className="rpt-sent-v2-kw"><b>대표 키워드:</b> {(s.neg_keywords||[]).slice(0,4).map(k=>k.word).join(", ")}</p>
+                : <p className="rpt-sent-v2-kw"><b>대표 키워드:</b> 특이 불만 키워드 없음</p>
+              }
+              <p className="rpt-sent-v2-note"><b>비고:</b> {
+                sent.negative_pct <= 5 ? "인기 매장에서 공통적으로 나타나는 수준으로, 지속적 모니터링을 권장합니다."
+                : sent.negative_pct <= 15 ? "반복 언급 불만 요소를 중심으로 운영 개선 방안을 마련하세요."
+                : "부정 반응 비중이 높습니다. 주요 불만 키워드를 중심으로 즉각적인 운영 점검이 필요합니다."
+              }</p>
             </div>
 
             {/* 감성 분석 인사이트 */}
             <div className="rpt-sent-v2-insight">
               <div className="rpt-sent-v2-insight-title">💡 감성 분석 인사이트</div>
               <p>
-                <b>긍정 감성 {sent.positive_pct}%는 {sent.positive_pct >= 85 ? "매우 우수한" : sent.positive_pct >= 70 ? "양호한" : "개선이 필요한"} 지표입니다.</b>
+                <b>긍정 감성 {sent.positive_pct}%는 {
+                  sent.positive_pct >= 85 ? "매우 우수한" :
+                  sent.positive_pct >= 70 ? "양호한" : "개선이 필요한"
+                } 지표입니다.</b>
                 {(s.pos_keywords||[]).length >= 2
-                  ? ` 특히 "${(s.pos_keywords||[])[0]?.word}"와 "${(s.pos_keywords||[])[1]?.word}"가 동시에 높은 비중을 차지한 점은 매장만의 강력한 차별화 포인트입니다.`
-                  : " 고객의 전반적인 만족도가 높은 상태입니다."}
-                {sent.negative_pct > 0 && sent.negative_pct <= 10
-                  ? ` 부정 감성 ${sent.negative_pct}%는 매장의 인기도를 반증하는 지표로, ${(s.neg_keywords||[])[0]?.word ? `${(s.neg_keywords||[])[0].word} 관련` : "대기·혼잡"} 관리 시스템으로 효과적으로 대응하는 것을 권장합니다.`
-                  : sent.negative_pct > 10
-                  ? ` 부정 감성 ${sent.negative_pct}%는 개선이 필요한 수준으로, 부정 키워드를 중심으로 운영 전략을 점검하세요.`
-                  : ""}
+                  ? ` 고객 리뷰에서 "${(s.pos_keywords||[])[0]?.word}", "${(s.pos_keywords||[])[1]?.word}" 등의 표현이 반복적으로 확인되며, 이는 매장의 핵심 경쟁력으로 작동하고 있습니다.`
+                  : " 고객의 전반적인 만족도가 높게 유지되고 있습니다."}
+                {` 부정 반응 ${sent.negative_pct}%(${sent.negative_count}건)${
+                  sent.negative_pct <= 5 ? "는 매우 낮은 수준으로 주요 불만 요인이 제한적입니다."
+                  : sent.negative_pct <= 15 ? " — 반복되는 불만 키워드를 선제적으로 모니터링하세요."
+                  : "은 개선이 시급합니다. 주요 불만 요인에 대한 즉각적인 운영 조치가 필요합니다."
+                }`}
               </p>
             </div>
-
-            {/* 긍정/부정 연관어 */}
-            {(s.pos_keywords?.length > 0 || s.neg_keywords?.length > 0) && (
-              <div className="rpt-kw-compare" style={{marginTop:"12px"}}>
-                <div>
-                  <div className="rpt-kw-col-title" style={{color:"#10b981"}}>👍 긍정 연관어</div>
-                  <div className="rpt-kw-tags">{(s.pos_keywords||[]).map((k,i)=><span key={i} className="rpt-tag-pos">{k.word} <b>{k.count}</b></span>)}</div>
-                </div>
-                <div>
-                  <div className="rpt-kw-col-title" style={{color:"#e74c6f"}}>👎 부정 연관어</div>
-                  <div className="rpt-kw-tags">{(s.neg_keywords||[]).map((k,i)=><span key={i} className="rpt-tag-neg">{k.word} <b>{k.count}</b></span>)}</div>
-                </div>
-              </div>
-            )}
           </div>
 
-          <div className="rpt-card">
-            <div className="rpt-card-header">
-              <div className="rpt-en-title">KEYWORD ANALYSIS</div>
-              <h2>핵심 연관어 분석</h2>
-            </div>
-            {kwBlog.length > 0 ? (
-              <>
-                {/* TOP 키워드 — 다크 해시태그 pill (기간 제거) */}
-                <div className="rpt-kw-top-wrap">
-                  <div className="rpt-kw-top-title"># TOP 키워드</div>
-                  <div className="rpt-kw-pills">
-                    {(kwAnalysis?.top_all || kwBlog).slice(0,15).map((kw,i)=>(
-                      <span key={i} className="rpt-kw-pill-dark">#{kw.word}</span>
                     ))}
                   </div>
                 </div>
