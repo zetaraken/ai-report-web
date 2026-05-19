@@ -144,6 +144,56 @@ function Report({ report, onBack }) {
         </div>
       </div>
 
+      {/* ── 공식 수치 배너 (기존 유지) ── */}
+      {(officialReceipt > 0 || officialBlog > 0) && (
+        <div className="official-banner">
+          <span className="banner-icon">📌</span>
+          <div className="banner-body">
+            <span className="banner-title">네이버 플레이스 공식 수치</span>
+            <div className="banner-vals">
+              <span>방문자리뷰 <strong>{officialReceipt.toLocaleString()}건</strong></span>
+              <span className="banner-sub-row">
+                <span className="banner-sub">📷 사진·영상 <b>{officialTextReceipt.toLocaleString()}건</b></span>
+                <span className="banner-sub">🏷️ 키워드·별점 <b>{officialKwReceipt.toLocaleString()}건</b></span>
+              </span>
+              <span>블로그리뷰 <strong>{officialBlog.toLocaleString()}건</strong></span>
+            </div>
+          </div>
+          <div className="banner-collected">
+            <span>실제 수집</span>
+            <span>영수증 <strong>{totalReceipt}</strong>건 · 블로그 <strong>{totalBlog}</strong>건</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── 요약 카드 4개 (기존 유지) ── */}
+      <div className="summary-grid">
+        <div className="stat-card">
+          <div className="stat-label">방문자리뷰 (전체)</div>
+          <div className="stat-value">{officialReceipt.toLocaleString()}</div>
+          {officialKwReceipt > 0 && (
+            <div className="stat-breakdown">
+              <span>📷 사진·영상 {officialTextReceipt}건</span>
+              <span>🏷️ 키워드·별점 {officialKwReceipt}건</span>
+            </div>
+          )}
+          <div className="stat-sub">수집 {totalReceipt}건</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">블로그리뷰</div>
+          <div className="stat-value">{(officialBlog || totalBlog).toLocaleString()}</div>
+          {officialBlog > 0 && <div className="stat-sub">수집 {totalBlog}건</div>}
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">네이버 검색 콘텐츠</div>
+          <div className="stat-value">{naverCount.toLocaleString()}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">인스타그램 콘텐츠</div>
+          <div className="stat-value">{igCount.toLocaleString()}</div>
+        </div>
+      </div>
+
       {/* ── KPI 카드 ── */}
       <div className="rpt-kpi-grid">
         <div className="rpt-kpi">
