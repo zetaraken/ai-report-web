@@ -123,6 +123,7 @@ function Report({ report, onBack }) {
 
   const sent    = s.sentiment || {};
   const monthly = s.monthly_blog_stats || [];
+  const monthlyReceipt = s.monthly_receipt_stats || [];
   const kwBlog  = s.top_keywords_blog || [];
   const kwAnalysis = s.keyword_analysis || null;
   const insights = s.insights || [];
@@ -404,26 +405,29 @@ function Report({ report, onBack }) {
                   </div>
                 )}
 
-                {/* 주요 분석 키워드 Top 5 */}
-                <div className="rpt-kw-top5-wrap">
-                  <div className="rpt-kw-top5-title">주요 분석 키워드 Top 5</div>
-                  <ol className="rpt-kw-top5-list">
-                    {(kwAnalysis?.top_all || kwBlog).slice(0,5).map((kw,i) => {
-                      const descs = [
-                        "블로그·영수증 리뷰에서 가장 자주 등장하는 핵심 키워드로, 고객 방문 동기와 직결됩니다.",
-                        "두 번째로 빈출하는 키워드로, 매장의 차별화 포인트와 연관성이 높습니다.",
-                        "세 번째 빈출 키워드로, 검색 노출 및 온라인 발견 가능성을 높이는 표현입니다.",
-                        "네 번째 키워드로, 고객 경험의 특정 측면이 반복 언급되고 있습니다.",
-                        "다섯 번째 키워드로, 방문 후기 확산과 재방문 유도에 기여하는 표현입니다.",
-                      ];
-                      return (
-                        <li key={i}>
-                          <strong>#{kw.word}</strong>: {kw.count}회 언급. {descs[i]}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
+                {/* 주요 분석 키워드 Top 5 — 카테고리 균형 선정 */}
+                {(() => {
+                  const top5 = kwAnalysis?.top5 || (kwAnalysis?.top_all || kwBlog).slice(0,5).map((k,i)=>({...k,category:"핵심 키워드"}));
+                  const catDesc = {
+                    "메뉴 키워드": (w,c) => `${c}회 언급. 고객이 가장 자주 언급하는 메뉴 키워드로, 방문 동기와 주문 결정에 직접적으로 영향을 주는 핵심 표현입니다.`,
+                    "위치 키워드": (w,c) => `${c}회 언급. 매장 위치·접근성과 연결되는 지역 기반 키워드로, 네이버 검색 노출과 로컬 발견 가능성을 높입니다.`,
+                    "경험 키워드": (w,c) => `${c}회 언급. 방문 경험·서비스·예약 등 고객 이용 맥락이 반복 언급되는 키워드로, 재방문 유도에 유리합니다.`,
+                    "핵심 키워드": (w,c) => `${c}회 언급. 블로그·영수증 리뷰 전체에서 반복 등장하는 핵심 표현으로, 온라인 마케팅 콘텐츠 기획 시 우선 활용을 권장합니다.`,
+                  };
+                  return (
+                    <div className="rpt-kw-top5-wrap">
+                      <div className="rpt-kw-top5-title">주요 분석 키워드 Top 5</div>
+                      <ol className="rpt-kw-top5-list">
+                        {top5.map((kw,i) => (
+                          <li key={i}>
+                            <span className="rpt-kw-top5-cat">{kw.category || "핵심 키워드"}</span>
+                            <strong> #{kw.word}</strong>: {(catDesc[kw.category] || catDesc["핵심 키워드"])(kw.word, kw.count)}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  );
+                })()}
               </>
             ) : <p style={{color:"#64748b",fontSize:"13px"}}>재분석 후 키워드 데이터가 표시됩니다.</p>}
           </div>
@@ -434,20 +438,32 @@ function Report({ report, onBack }) {
 
       {/* ── 월별 트렌드 + 상세 데이터 ── */}
       {(() => {
-        // 날짜 확인된 블로그 (monthly) + 날짜 미확인 건수 계산
-        const datedTotal   = monthly.reduce((s, m) => s + m.total, 0);
-        const undatedTotal = totalBlog - datedTotal;  // 날짜 미확인 건수
-        if (datedTotal === 0 && undatedTotal === 0) return null;
+        // 날짜 확인된 블로그+영수증 합산
+        const datedBlog    = monthly.reduce((s, m) => s + m.total, 0);
+        const datedReceipt = monthlyReceipt.reduce((s, m) => s + m.count, 0);
+        const undatedBlog  = totalBlog - datedBlog;
+        if (datedBlog === 0 && datedReceipt === 0 && undatedBlog === 0) return null;
 
-        const trendData = monthly.map(m => ({
-          month:    m.month.slice(2).replace("-", "."),  // "26.04"
-          fullMonth: m.month,
-          naverBlog: m.total,
-          ad:       m.ad,
-          organic:  m.organic,
-          unknown:  m.unknown || 0,
-          total:    m.total,
-        }));
+        // 블로그+영수증 월 목록 합산
+        const allMonths = [...new Set([
+          ...monthly.map(m => m.month),
+          ...monthlyReceipt.map(m => m.month),
+        ])].sort();
+
+        const trendData = allMonths.map(month => {
+          const blog    = monthly.find(m => m.month === month) || {total:0,ad:0,organic:0,unknown:0};
+          const receipt = monthlyReceipt.find(m => m.month === month) || {count:0};
+          return {
+            month:    month.slice(2).replace("-", "."),
+            fullMonth: month,
+            naverBlog: blog.total,
+            receipt:   receipt.count,
+            ad:        blog.ad,
+            organic:   blog.organic,
+            unknown:   blog.unknown || 0,
+            total:     blog.total + receipt.count,
+          };
+        });
         const maxTotal  = Math.max(...trendData.map(d => d.total), 1);
         const peakIdx   = trendData.reduce((pi, d, i, arr) => d.total > arr[pi].total ? i : pi, 0);
         const W = Math.max(trendData.length * 90 + 60, 300);
@@ -540,26 +556,29 @@ function Report({ report, onBack }) {
                   <thead>
                     <tr>
                       <th>월 구분</th>
+                      <th>영수증<br/>리뷰</th>
                       <th>블로그<br/>합계</th>
                       <th>광고</th>
                       <th>내돈내산</th>
-                      <th>판별불가</th>
+                      <th>합계</th>
                     </tr>
                   </thead>
                   <tbody>
                     {trendData.map((d, i) => (
                       <tr key={i} className={i === peakIdx ? "rpt-table-peak" : ""}>
                         <td><strong>{d.month}</strong></td>
+                        <td>{d.receipt > 0 ? d.receipt : "-"}</td>
                         <td><strong>{d.naverBlog}</strong></td>
                         <td style={{color:"#e74c6f"}}>{d.ad}</td>
                         <td style={{color:"#27c98f"}}>{d.organic}</td>
-                        <td style={{color:"#8890a4"}}>{d.unknown}</td>
+                        <td><strong>{d.total}</strong></td>
                       </tr>
                     ))}
-                    {undatedTotal > 0 && (
+                    {undatedBlog > 0 && (
                       <tr style={{opacity:0.5}}>
                         <td><em>날짜 미확인</em></td>
-                        <td><em>{undatedTotal}</em></td>
+                        <td>-</td>
+                        <td><em>{undatedBlog}</em></td>
                         <td colSpan="3" style={{fontSize:"11px",color:"#64748b"}}>월별 집계 제외</td>
                       </tr>
                     )}
@@ -567,10 +586,11 @@ function Report({ report, onBack }) {
                   <tfoot>
                     <tr>
                       <td><strong>누적 합계</strong></td>
+                      <td><strong>{datedReceipt}</strong></td>
                       <td><strong>{totalBlog}</strong></td>
                       <td style={{color:"#e74c6f"}}><strong>{adCount}</strong></td>
                       <td style={{color:"#27c98f"}}><strong>{orgCount}</strong></td>
-                      <td style={{color:"#8890a4"}}><strong>{unkCount}</strong></td>
+                      <td><strong>{datedReceipt + totalBlog}</strong></td>
                     </tr>
                   </tfoot>
                 </table>

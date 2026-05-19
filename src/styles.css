@@ -827,3 +827,13 @@ a:hover { text-decoration: underline; }
   font-size: 13px; color: #374151; line-height: 1.6;
 }
 .rpt-kw-top5-list li strong { color: #1d4ed8; }
+
+/* Top5 카테고리 라벨 */
+.rpt-kw-top5-cat {
+  display: inline-block;
+  font-size: 10px; font-weight: 700;
+  color: #2563eb; background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px; padding: 1px 7px;
+  margin-right: 4px; vertical-align: middle;
+}
