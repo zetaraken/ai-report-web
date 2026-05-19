@@ -100,309 +100,368 @@ function ProgressOverlay({ job }) {
 }
 
 // ── 리포트 화면 ───────────────────────────────────────────────────
+// ── 리포트 화면 ───────────────────────────────────────────────────
 function Report({ report, onBack }) {
   const [tab, setTab] = useState("summary");
   const s = report.summary;
 
-  const totalBlog = s.total_blog_reviews || 0;
+  const totalBlog    = s.total_blog_reviews || 0;
   const totalReceipt = s.total_receipt_reviews || 0;
-  const officialReceipt = s.official_receipt_count || 0;
+  const officialReceipt     = s.official_receipt_count || 0;
   const officialTextReceipt = s.official_receipt_text_count || officialReceipt;
-  const officialKwReceipt = s.official_receipt_keyword || 0;
-  const officialBlog = s.official_blog_count || 0;
+  const officialKwReceipt   = s.official_receipt_keyword || 0;
+  const officialBlog        = s.official_blog_count || 0;
+  const igCount    = s.instagram_count || 0;
+  const naverCount = s.naver_search_count || 0;
+  const totalAll   = totalReceipt + totalBlog + igCount + naverCount;
+
+  const adCount  = s.blog_ad_count || 0;
+  const orgCount = s.blog_organic_count || 0;
+  const unkCount = s.blog_unknown_count || 0;
+  const adPct    = totalBlog > 0 ? Math.round(adCount  / totalBlog * 100) : 0;
+  const orgPct   = totalBlog > 0 ? Math.round(orgCount / totalBlog * 100) : 0;
+
+  const sent    = s.sentiment || {};
+  const monthly = s.monthly_blog_stats || [];
+  const kwBlog  = s.top_keywords_blog || [];
+  const insights = s.insights || [];
+
+  const crawledAt = new Date(report.crawled_at).toLocaleDateString("ko-KR", {year:"numeric",month:"long",day:"numeric"});
 
   return (
-    <div className="report-page">
-      <div className="report-header">
+    <div className="rpt-page">
+      {/* ── 헤더 ── */}
+      <div className="rpt-header">
         <button className="back-btn" onClick={onBack}>← 목록으로</button>
-        <div>
-          <h1>{report.merchant_name}</h1>
-          <span className="crawled-at">분석 시각: {new Date(report.crawled_at).toLocaleString("ko-KR")}</span>
+        <h1 className="rpt-title">{report.merchant_name} 소셜 빅데이터 분석 리포트</h1>
+        <p className="rpt-subtitle">온라인 평판 · 광고 판별 · 감성 분석</p>
+        <div className="rpt-pills">
+          <span className="rpt-pill">분석일 {crawledAt}</span>
+          <span className="rpt-pill">영수증 {totalReceipt}건 수집</span>
+          <span className="rpt-pill">블로그 {totalBlog}건 분석</span>
+          {igCount > 0 && <span className="rpt-pill">인스타 {igCount}건</span>}
+          <span className="rpt-pill">광고 {adPct}% · 내돈내산 {orgPct}%</span>
         </div>
       </div>
 
-      {/* 공식 수치 배너 */}
-      {(officialReceipt > 0 || officialBlog > 0) && (
-        <div className="official-banner">
-          <span className="banner-icon">📌</span>
-          <div className="banner-body">
-            <span className="banner-title">네이버 플레이스 공식 수치</span>
-            <div className="banner-vals">
-              <span>방문자리뷰 <strong>{officialReceipt.toLocaleString()}건</strong></span>
-              <span className="banner-sub-row">
-                <span className="banner-sub">📷 사진·영상 <b>{officialTextReceipt.toLocaleString()}건</b></span>
-                <span className="banner-sub">🏷️ 키워드·별점 <b>{officialKwReceipt.toLocaleString()}건</b></span>
-              </span>
-              <span>블로그리뷰 <strong>{officialBlog.toLocaleString()}건</strong></span>
+      {/* ── KPI 카드 ── */}
+      <div className="rpt-kpi-grid">
+        <div className="rpt-kpi">
+          <div className="rpt-kpi-label">네이버 방문자리뷰 (공식)</div>
+          <div className="rpt-kpi-value">{officialReceipt.toLocaleString()}<span>건</span></div>
+          <div className="rpt-kpi-desc">수집 {totalReceipt}건 분석 완료</div>
+        </div>
+        <div className="rpt-kpi">
+          <div className="rpt-kpi-label">네이버 블로그리뷰 (공식)</div>
+          <div className="rpt-kpi-value">{(officialBlog||totalBlog).toLocaleString()}<span>건</span></div>
+          <div className="rpt-kpi-desc">수집 {totalBlog}건 원문 방문 분석</div>
+        </div>
+        <div className="rpt-kpi">
+          <div className="rpt-kpi-label">내돈내산 비율</div>
+          <div className="rpt-kpi-value" style={{color:"#10b981"}}>{orgPct}<span>%</span></div>
+          <div className="rpt-kpi-desc">{orgCount}건 순수 후기</div>
+        </div>
+        <div className="rpt-kpi">
+          <div className="rpt-kpi-label">광고 비율</div>
+          <div className="rpt-kpi-value" style={{color:"#e74c6f"}}>{adPct}<span>%</span></div>
+          <div className="rpt-kpi-desc">{adCount}건 협찬·체험단</div>
+        </div>
+        {sent.positive_pct != null && (
+          <div className="rpt-kpi">
+            <div className="rpt-kpi-label">긍정 반응</div>
+            <div className="rpt-kpi-value" style={{color:"#2563eb"}}>{sent.positive_pct}<span>%</span></div>
+            <div className="rpt-kpi-desc">{sent.positive_count}건 긍정 리뷰</div>
+          </div>
+        )}
+        <div className="rpt-kpi">
+          <div className="rpt-kpi-label">인스타그램</div>
+          <div className="rpt-kpi-value">{igCount.toLocaleString()}<span>건</span></div>
+          <div className="rpt-kpi-desc">해시태그 콘텐츠</div>
+        </div>
+      </div>
+
+      {/* ── Executive Summary ── */}
+      <div className="rpt-exec">
+        <h2>Executive Summary (종합 요약)</h2>
+        {sent.positive_pct != null ? (
+          <>
+            <p>수집된 전체 리뷰의 <strong>{sent.positive_pct}%가 긍정 반응</strong>으로, 방문 고객의 전반적인 만족도가 높은 상태입니다. 부정 반응은 {sent.negative_pct}%로 {sent.negative_pct < 20 ? "낮은 수준이며 주로 대기·혼잡 관련 의견" : "주요 불만 요인에 대한 개선이 필요"}합니다.</p>
+            <p>블로그 리뷰 {totalBlog}건을 원문 분석한 결과, <strong>내돈내산 {orgPct}%({orgCount}건)</strong>으로 실제 고객의 자발적 후기 비중이 {orgPct >= 60 ? "높습니다" : "개선이 필요합니다"}. 광고성 게시글은 {adPct}%({adCount}건)입니다.</p>
+            {kwBlog.length > 0 && <p>고객들이 가장 많이 언급한 키워드는 <strong>'{kwBlog[0]?.word}'</strong>이며, 이 키워드를 중심으로 온라인 마케팅 전략을 강화하면 검색 노출과 방문 전환율을 높일 수 있습니다.</p>}
+          </>
+        ) : (
+          <p>총 수집 데이터 {totalBlog + totalReceipt}건(블로그 {totalBlog}건 + 영수증 {totalReceipt}건)을 분석한 결과입니다. 광고 판별: 내돈내산 {orgPct}%, 광고 {adPct}%.</p>
+        )}
+      </div>
+
+      {/* ── 플랫폼별 + 광고판별 ── */}
+      <div className="rpt-2col">
+        <div className="rpt-card">
+          <div className="rpt-card-header">
+            <div className="rpt-en-title">Platform Data</div>
+            <h2>플랫폼별 수집 현황</h2>
+          </div>
+          <table className="rpt-table">
+            <thead><tr><th>플랫폼</th><th>공식</th><th>수집</th><th>점유율</th></tr></thead>
+            <tbody>
+              <tr><td>🧾 영수증리뷰</td><td>{officialReceipt.toLocaleString()}</td><td><strong>{totalReceipt}</strong></td><td>{totalAll>0?Math.round(totalReceipt/totalAll*100):0}%</td></tr>
+              <tr><td>📝 블로그리뷰</td><td>{(officialBlog||totalBlog).toLocaleString()}</td><td><strong>{totalBlog}</strong></td><td>{totalAll>0?Math.round(totalBlog/totalAll*100):0}%</td></tr>
+              <tr><td>📸 인스타그램</td><td>-</td><td><strong>{igCount}</strong></td><td>{totalAll>0?Math.round(igCount/totalAll*100):0}%</td></tr>
+              <tr><td>🔍 네이버 검색</td><td>-</td><td><strong>{naverCount}</strong></td><td>-</td></tr>
+              <tr className="rpt-table-total"><td>합계</td><td>-</td><td><strong>{(totalReceipt+totalBlog+igCount).toLocaleString()}</strong></td><td>100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="rpt-card">
+          <div className="rpt-card-header">
+            <div className="rpt-en-title">Ad Detection</div>
+            <h2>블로그 광고 판별</h2>
+          </div>
+          <div className="rpt-ad-donut">
+            <svg viewBox="0 0 120 120" width="130" height="130">
+              {(() => {
+                const r=45; const cx=60; const cy=60; const circ=2*Math.PI*r;
+                const slices=[{pct:adPct,color:"#e74c6f"},{pct:orgPct,color:"#27c98f"},{pct:100-adPct-orgPct,color:"#8890a4"}];
+                let offset=0;
+                return slices.map((sl,i)=>{
+                  const len=circ*sl.pct/100;
+                  const el=<circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={sl.color} strokeWidth="22" strokeDasharray={`${len} ${circ-len}`} strokeDashoffset={-offset} transform={`rotate(-90 ${cx} ${cy})`}/>;
+                  offset+=len; return el;
+                });
+              })()}
+              <text x="60" y="56" textAnchor="middle" fontSize="14" fontWeight="700" fill="#334155">{orgPct}%</text>
+              <text x="60" y="70" textAnchor="middle" fontSize="8" fill="#64748b">내돈내산</text>
+            </svg>
+            <div className="rpt-ad-legend">
+              <div className="rpt-ad-leg-item"><span style={{background:"#e74c6f"}}></span>광고 {adPct}% ({adCount}건)</div>
+              <div className="rpt-ad-leg-item"><span style={{background:"#27c98f"}}></span>내돈내산 {orgPct}% ({orgCount}건)</div>
+              <div className="rpt-ad-leg-item"><span style={{background:"#8890a4"}}></span>판별불가 {100-adPct-orgPct}% ({unkCount}건)</div>
             </div>
           </div>
-          <div className="banner-collected">
-            <span>실제 수집</span>
-            <span>영수증 <strong>{totalReceipt}</strong>건 · 블로그 <strong>{totalBlog}</strong>건</span>
+          <div style={{display:"flex",flexDirection:"column",gap:"8px",marginTop:"12px"}}>
+            <AdBar label="광고"    count={adCount}  total={totalBlog} color="#e74c6f" />
+            <AdBar label="내돈내산" count={orgCount} total={totalBlog} color="#27c98f" />
+            <AdBar label="판별불가" count={unkCount} total={totalBlog} color="#8890a4" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── 감성분석 + 키워드 ── */}
+      {sent.positive_pct != null && (
+        <div className="rpt-2col">
+          <div className="rpt-card">
+            <div className="rpt-card-header">
+              <div className="rpt-en-title">Sentiment Analysis</div>
+              <h2>감성 분석</h2>
+            </div>
+            <div className="rpt-sent-bar">
+              <div style={{width:`${sent.positive_pct}%`,background:"#2563eb"}}/>
+              <div style={{width:`${sent.neutral_pct}%`, background:"#cbd5e1"}}/>
+              <div style={{width:`${sent.negative_pct}%`,background:"#f59e0b"}}/>
+            </div>
+            <div className="rpt-sent-labels">
+              <span>긍정 {sent.positive_pct}%</span>
+              <span>중립 {sent.neutral_pct}%</span>
+              <span>주의 {sent.negative_pct}%</span>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:"10px",marginTop:"16px"}}>
+              <div className="rpt-sent-card rpt-sent-pos">
+                <strong>✅ 긍정적인 반응 (Pros)</strong>
+                {sent.pos_voc?.length > 0 ? sent.pos_voc.map((v,i)=><p key={i}>"{v}…"</p>) : <p>{(s.pos_keywords||[]).slice(0,3).map(k=>k.word).join(", ")} 등의 긍정 키워드가 주를 이룹니다.</p>}
+              </div>
+              <div className="rpt-sent-card rpt-sent-neg">
+                <strong>⚠️ 아쉬운 점 (Cons)</strong>
+                {sent.neg_voc?.length > 0 ? sent.neg_voc.map((v,i)=><p key={i}>"{v}…"</p>) : <p>{(s.neg_keywords||[]).slice(0,3).map(k=>k.word).join(", ")} 등의 부정 키워드가 포착됩니다.</p>}
+              </div>
+            </div>
+            {(s.pos_keywords?.length > 0 || s.neg_keywords?.length > 0) && (
+              <div className="rpt-kw-compare">
+                <div>
+                  <div className="rpt-kw-col-title" style={{color:"#10b981"}}>👍 긍정 연관어</div>
+                  <div className="rpt-kw-tags">{(s.pos_keywords||[]).map((k,i)=><span key={i} className="rpt-tag-pos">{k.word} <b>{k.count}</b></span>)}</div>
+                </div>
+                <div>
+                  <div className="rpt-kw-col-title" style={{color:"#e74c6f"}}>👎 부정 연관어</div>
+                  <div className="rpt-kw-tags">{(s.neg_keywords||[]).map((k,i)=><span key={i} className="rpt-tag-neg">{k.word} <b>{k.count}</b></span>)}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rpt-card">
+            <div className="rpt-card-header">
+              <div className="rpt-en-title">Keyword Analysis</div>
+              <h2>핵심 연관어 분석</h2>
+            </div>
+            {kwBlog.length > 0 ? (
+              <>
+                <div className="rpt-wordcloud">
+                  <svg viewBox="0 0 320 160" width="100%" style={{maxHeight:"160px"}}>
+                    {kwBlog.slice(0,12).map((kw,i)=>{
+                      const sizes=[28,20,17,15,13,12,11,10,10,9,9,9];
+                      const colors=["#1a2942","#2563eb","#3b82f6","#64748b","#475569","#94a3b8","#cbd5e1","#94a3b8","#64748b","#94a3b8","#cbd5e1","#cbd5e1"];
+                      const pos=[[160,85],[82,50],[238,125],[88,145],[230,48],[152,22],[42,98],[268,88],[128,128],[198,162],[52,65],[282,32]];
+                      const [x,y]=pos[i]||[160,85];
+                      return <text key={i} x={x} y={y} fontSize={sizes[i]||9} fontWeight={i<3?"bold":"normal"} fill={colors[i]||"#cbd5e1"} textAnchor="middle">{kw.word}</text>;
+                    })}
+                  </svg>
+                </div>
+                <div className="rpt-kw-list-title">주요 분석 키워드 Top 5</div>
+                <ol className="rpt-kw-ol">
+                  {kwBlog.slice(0,5).map((kw,i)=><li key={i}><strong>#{kw.word}</strong>: {kw.count}회 언급. 블로그 리뷰에서 가장 자주 등장하는 핵심 키워드입니다.</li>)}
+                </ol>
+                <div style={{marginTop:"14px",display:"flex",flexDirection:"column",gap:"6px"}}>
+                  {kwBlog.slice(0,8).map((kw,i)=>{
+                    const pct=Math.round(kw.count/kwBlog[0].count*100);
+                    return (
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                        <span style={{width:"22px",fontSize:"11px",color:"#64748b",textAlign:"right"}}>#{i+1}</span>
+                        <span style={{width:"66px",fontSize:"13px",fontWeight:"600",color:"#2563eb"}}>{kw.word}</span>
+                        <div style={{flex:1,background:"#f1f5f9",borderRadius:"4px",height:"12px",overflow:"hidden"}}>
+                          <div style={{width:`${pct}%`,height:"100%",background:"#2563eb",borderRadius:"4px"}}/>
+                        </div>
+                        <span style={{fontSize:"12px",color:"#64748b",width:"34px",textAlign:"right"}}>{kw.count}회</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : <p style={{color:"#64748b",fontSize:"13px"}}>재분석 후 키워드 데이터가 표시됩니다.</p>}
           </div>
         </div>
       )}
 
-      {/* 요약 카드 */}
-      <div className="summary-grid">
-        <div className="stat-card">
-          <div className="stat-label">방문자리뷰 (전체)</div>
-          <div className="stat-value">{officialReceipt.toLocaleString()}</div>
-          {officialKwReceipt > 0 && (
-            <div className="stat-breakdown">
-              <span>📷 사진·영상 {officialTextReceipt}건</span>
-              <span>🏷️ 키워드·별점 {officialKwReceipt}건</span>
-            </div>
-          )}
-          <div className="stat-sub">수집 {totalReceipt}건</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">블로그리뷰</div>
-          <div className="stat-value">{(officialBlog || totalBlog).toLocaleString()}</div>
-          {officialBlog > 0 && <div className="stat-sub">수집 {totalBlog}건</div>}
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">네이버 검색 콘텐츠</div>
-          <div className="stat-value">{(s.naver_search_count || 0).toLocaleString()}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">인스타그램 콘텐츠</div>
-          <div className="stat-value">{(s.instagram_count || 0).toLocaleString()}</div>
-        </div>
-      </div>
-
-      {/* 광고 판별 요약 */}
-      <div className="ad-summary">
-        <h2>광고 판별 결과</h2>
-        <div className="ad-grid">
-          <div className="ad-section">
-            <h3>📝 블로그리뷰 ({totalBlog}건 원문 분석)</h3>
-            <div className="ad-bars">
-              <AdBar label="광고"    count={s.blog_ad_count}      total={totalBlog} color="var(--ad)" />
-              <AdBar label="내돈내산" count={s.blog_organic_count} total={totalBlog} color="var(--organic)" />
-              <AdBar label="판별불가" count={s.blog_unknown_count} total={totalBlog} color="var(--unknown)" />
-            </div>
+      {/* ── 월별 분석 ── */}
+      {monthly.length > 0 && (
+        <div className="rpt-card">
+          <div className="rpt-card-header">
+            <div className="rpt-en-title">Monthly Deep Dive</div>
+            <h2>월별 블로그 언급량 분석</h2>
           </div>
-        </div>
-      </div>
-
-      {/* 감성 분석 */}
-      {s.sentiment && (
-        <div className="insight-section">
-          <h2>😊 감성 분석 (Sentiment)</h2>
-          <div className="sentiment-grid">
-            <div className="sentiment-card positive">
-              <div className="sentiment-pct">{s.sentiment.positive_pct}%</div>
-              <div className="sentiment-label">긍정</div>
-              <div className="sentiment-count">{s.sentiment.positive_count}건</div>
-            </div>
-            <div className="sentiment-card neutral">
-              <div className="sentiment-pct">{s.sentiment.neutral_pct}%</div>
-              <div className="sentiment-label">중립</div>
-              <div className="sentiment-count">{s.sentiment.neutral_count}건</div>
-            </div>
-            <div className="sentiment-card negative">
-              <div className="sentiment-pct">{s.sentiment.negative_pct}%</div>
-              <div className="sentiment-label">부정</div>
-              <div className="sentiment-count">{s.sentiment.negative_count}건</div>
-            </div>
-          </div>
-
-          {/* 긍정/부정 연관어 */}
-          <div className="kw-compare">
-            <div className="kw-col">
-              <div className="kw-col-title" style={{color:"var(--organic)"}}>👍 긍정 연관어</div>
-              {(s.pos_keywords||[]).map((k,i)=>(
-                <span key={i} className="kw-tag positive-tag">{k.word} <b>{k.count}</b></span>
-              ))}
-            </div>
-            <div className="kw-col">
-              <div className="kw-col-title" style={{color:"var(--ad)"}}>👎 부정 연관어</div>
-              {(s.neg_keywords||[]).map((k,i)=>(
-                <span key={i} className="kw-tag negative-tag">{k.word} <b>{k.count}</b></span>
-              ))}
-            </div>
-          </div>
-
-          {/* VOC 대표 문장 */}
-          {(s.sentiment.pos_voc?.length > 0 || s.sentiment.neg_voc?.length > 0) && (
-            <div className="voc-wrap">
-              {s.sentiment.pos_voc?.length > 0 && (
-                <div className="voc-group">
-                  <div className="voc-title" style={{color:"var(--organic)"}}>💬 긍정 리뷰 샘플</div>
-                  {s.sentiment.pos_voc.map((v,i)=>(
-                    <div key={i} className="voc-item positive-voc">"{v}…"</div>
-                  ))}
-                </div>
-              )}
-              {s.sentiment.neg_voc?.length > 0 && (
-                <div className="voc-group">
-                  <div className="voc-title" style={{color:"var(--ad)"}}>💬 부정 리뷰 샘플</div>
-                  {s.sentiment.neg_voc.map((v,i)=>(
-                    <div key={i} className="voc-item negative-voc">"{v}…"</div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 핵심 키워드 Top 10 */}
-      {s.top_keywords_blog && s.top_keywords_blog.length > 0 && (
-        <div className="insight-section">
-          <h2>🔑 블로그 핵심 키워드 Top 10</h2>
-          <div className="keyword-list">
-            {s.top_keywords_blog.map((kw, i) => {
-              const maxCount = s.top_keywords_blog[0].count;
-              const pct = Math.round((kw.count / maxCount) * 100);
+          <div className="rpt-monthly-grid">
+            {monthly.map((m,i)=>{
+              const isMax=m.total===Math.max(...monthly.map(x=>x.total));
               return (
-                <div key={i} className="keyword-row">
-                  <span className="keyword-rank">#{i+1}</span>
-                  <span className="keyword-word">{kw.word}</span>
-                  <div className="keyword-track">
-                    <div className="keyword-fill" style={{ width: `${pct}%` }} />
+                <div key={i} className={`rpt-month-card${isMax?" rpt-month-card--peak":""}`}>
+                  <div className="rpt-month-head">
+                    <div>
+                      <div className="rpt-month-badge">{m.month}</div>
+                      {isMax && <div className="rpt-month-tag">최고 기록 월</div>}
+                    </div>
+                    <div className="rpt-month-total"><strong>{m.total}</strong><span>건</span></div>
                   </div>
-                  <span className="keyword-count">{kw.count}회</span>
+                  <div className="rpt-month-metrics">
+                    <div className="rpt-month-metric"><span>광고</span><strong style={{color:"#e74c6f"}}>{m.ad}</strong></div>
+                    <div className="rpt-month-metric"><span>내돈내산</span><strong style={{color:"#27c98f"}}>{m.organic}</strong></div>
+                    <div className="rpt-month-metric"><span>판별불가</span><strong>{m.unknown||0}</strong></div>
+                  </div>
+                  <div style={{height:"6px",borderRadius:"3px",overflow:"hidden",display:"flex",marginTop:"8px"}}>
+                    <div style={{flex:m.ad,background:"#e74c6f"}}/>
+                    <div style={{flex:m.organic,background:"#27c98f"}}/>
+                    <div style={{flex:m.unknown||0,background:"#8890a4"}}/>
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* 월별 블로그 언급량 추이 */}
-      {s.monthly_blog_stats && s.monthly_blog_stats.length > 0 && (
-        <div className="insight-section">
-          <h2>📅 월별 블로그 언급량 추이</h2>
-          <div className="monthly-chart">
-            {(() => {
-              const maxTotal = Math.max(...s.monthly_blog_stats.map(m => m.total), 1);
-              return s.monthly_blog_stats.map((m, i) => {
-                const heightPct = Math.round((m.total / maxTotal) * 100);
-                const adPct    = m.total > 0 ? Math.round((m.ad / m.total) * 100) : 0;
-                const orgPct   = m.total > 0 ? Math.round((m.organic / m.total) * 100) : 0;
-                const unknPct  = 100 - adPct - orgPct;
+          <div className="rpt-monthly-bar-chart">
+            {(()=>{
+              const maxT=Math.max(...monthly.map(m=>m.total),1);
+              return monthly.map((m,i)=>{
+                const h=Math.round(m.total/maxT*100);
+                const aH=m.total>0?Math.round(m.ad/m.total*100):0;
+                const oH=m.total>0?Math.round(m.organic/m.total*100):0;
                 return (
-                  <div key={i} className="monthly-col">
-                    <span className="monthly-count">{m.total}건</span>
-                    <div className="monthly-bar-wrap">
-                      <div className="monthly-bar-stack" style={{ height: `${Math.max(heightPct, 4)}%` }}>
-                        <div style={{ flex: adPct,   background: "var(--ad)" }} />
-                        <div style={{ flex: orgPct,  background: "var(--organic)" }} />
-                        <div style={{ flex: unknPct, background: "var(--unknown)" }} />
+                  <div key={i} className="rpt-mbar-col">
+                    <span className="rpt-mbar-val">{m.total}</span>
+                    <div className="rpt-mbar-wrap">
+                      <div className="rpt-mbar-stack" style={{height:`${Math.max(h,3)}%`}}>
+                        <div style={{flex:aH,background:"#e74c6f"}}/>
+                        <div style={{flex:oH,background:"#27c98f"}}/>
+                        <div style={{flex:100-aH-oH,background:"#8890a4"}}/>
                       </div>
                     </div>
-                    <span className="monthly-label">{m.month.slice(2).replace("-",".")}</span>
+                    <span className="rpt-mbar-label">{m.month.slice(2).replace("-",".")}</span>
                   </div>
                 );
               });
             })()}
           </div>
-          <div className="monthly-legend">
-            <span style={{color:"var(--ad)"}}>● 광고</span>
-            <span style={{color:"var(--organic)"}}>● 내돈내산</span>
-            <span style={{color:"var(--unknown)"}}>● 판별불가</span>
-            <span className="legend-note">/ 날짜 미확인 게시글은 월별 집계 제외</span>
+          <div className="rpt-monthly-legend">
+            <span style={{color:"#e74c6f"}}>● 광고</span>
+            <span style={{color:"#27c98f"}}>● 내돈내산</span>
+            <span style={{color:"#8890a4"}}>● 판별불가</span>
+            <span style={{color:"#94a3b8",fontSize:"11px"}}>/ 날짜 미확인 게시글 제외</span>
           </div>
         </div>
       )}
 
-      {/* 경영 제언 */}
-      {s.insights && s.insights.length > 0 && (
-        <div className="insight-section">
-          <h2>💡 경영 제언 (Insight)</h2>
-          <div className="insight-cards">
-            {s.insights.map((ins, i) => (
-              <div key={i} className={`insight-card insight-${ins.type}`}>
-                <div className="insight-icon">
-                  {ins.type === "positive" ? "✅" : ins.type === "warning" ? "⚠️" : "ℹ️"}
-                </div>
-                <div className="insight-body">
-                  <div className="insight-title">{ins.title}</div>
-                  <div className="insight-text">{ins.body}</div>
-                </div>
+      {/* ── 마케팅 인사이트 ── */}
+      {insights.length > 0 && (
+        <div className="rpt-card">
+          <div className="rpt-card-header">
+            <div className="rpt-en-title">Actionable Insights</div>
+            <h2>마케팅 인사이트 및 전략 제안</h2>
+          </div>
+          <div className="rpt-insight-grid">
+            {insights.map((ins,i)=>(
+              <div key={i} className={`rpt-insight-card rpt-insight-${ins.type}`}>
+                <h3>{String(i+1).padStart(2,"0")}. {ins.title}</h3>
+                <p>{ins.body}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* 탭 */}
-      <div className="tab-bar">
-        {["summary","receipt","blog"].map((t) => (
-          <button key={t} className={`tab-btn ${tab===t?"active":""}`} onClick={()=>setTab(t)}>
-            {t==="summary" ? "전체 요약" : t==="receipt" ? `영수증리뷰 (${totalReceipt})` : `블로그리뷰 (${totalBlog})`}
-          </button>
-        ))}
+      {/* ── 상세 데이터 탭 ── */}
+      <div className="rpt-card">
+        <div className="rpt-card-header">
+          <div className="rpt-en-title">Raw Data</div>
+          <h2>수집 리뷰 상세</h2>
+        </div>
+        <div className="tab-bar">
+          {["summary","receipt","blog"].map((t)=>(
+            <button key={t} className={`tab-btn ${tab===t?"active":""}`} onClick={()=>setTab(t)}>
+              {t==="summary"?"전체 요약":t==="receipt"?`영수증리뷰 (${totalReceipt})`:`블로그리뷰 (${totalBlog})`}
+            </button>
+          ))}
+        </div>
+        {tab==="receipt" && <ReviewList reviews={report.naver_receipt_reviews} label="영수증리뷰" />}
+        {tab==="blog"    && <ReviewList reviews={report.naver_blog_reviews}    label="블로그리뷰" showLink />}
+        {tab==="summary" && (
+          <div className="summary-detail">
+            <table className="detail-table">
+              <thead><tr><th>플랫폼</th><th>공식 전체</th><th>수집 건수</th><th>🔴 광고</th><th>🟢 내돈내산</th><th>⚪ 판별불가</th></tr></thead>
+              <tbody>
+                <tr><td>네이버 블로그리뷰</td><td>{(officialBlog||totalBlog).toLocaleString()}</td><td><strong>{totalBlog}</strong></td><td className="ad-cell">{adCount}</td><td className="organic-cell">{orgCount}</td><td className="unknown-cell">{unkCount}</td></tr>
+                <tr><td>네이버 방문자리뷰</td><td>{officialReceipt.toLocaleString()}</td><td><strong>{totalReceipt}</strong></td><td colSpan={3} className="unknown-cell">해당 없음</td></tr>
+                {officialKwReceipt > 0 && <>
+                <tr className="sub-row"><td>&nbsp;&nbsp;└ 📷 사진·영상</td><td>{officialTextReceipt}</td><td>{totalReceipt}</td><td colSpan={3} className="unknown-cell">수집 대상</td></tr>
+                <tr className="sub-row"><td>&nbsp;&nbsp;└ 🏷️ 키워드·별점</td><td>{officialKwReceipt}</td><td>-</td><td colSpan={3} className="unknown-cell">텍스트 없음</td></tr>
+                </>}
+                <tr><td>네이버 검색결과</td><td colSpan={5}>{naverCount.toLocaleString()} 건</td></tr>
+                <tr><td>인스타그램</td><td colSpan={5}>{igCount.toLocaleString()} 건</td></tr>
+              </tbody>
+            </table>
+            {(officialReceipt > totalReceipt || officialBlog > totalBlog) && (
+              <p className="table-note">※ 네이버 크롤링 제한으로 전체 건수 중 일부만 수집됩니다.</p>
+            )}
+          </div>
+        )}
       </div>
 
-      {tab==="receipt" && <ReviewList reviews={report.naver_receipt_reviews} label="영수증리뷰" />}
-      {tab==="blog"    && <ReviewList reviews={report.naver_blog_reviews}    label="블로그리뷰" showLink />}
-      {tab==="summary" && (
-        <div className="summary-detail">
-          <h3>📊 플랫폼별 상세</h3>
-          <table className="detail-table">
-            <thead>
-              <tr>
-                <th>플랫폼</th>
-                <th>공식 전체</th>
-                <th>수집 건수</th>
-                <th>🔴 광고</th>
-                <th>🟢 내돈내산</th>
-                <th>⚪ 판별불가</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>네이버 블로그리뷰</td>
-                <td>{(officialBlog||totalBlog).toLocaleString()}</td>
-                <td><strong>{totalBlog}</strong></td>
-                <td className="ad-cell">{s.blog_ad_count||0}</td>
-                <td className="organic-cell">{s.blog_organic_count||0}</td>
-                <td className="unknown-cell">{s.blog_unknown_count||0}</td>
-              </tr>
-              <tr>
-                <td>네이버 방문자리뷰 (전체)</td>
-                <td>{officialReceipt.toLocaleString()}</td>
-                <td><strong>{totalReceipt}</strong></td>
-                <td colSpan={3} className="unknown-cell">해당 없음</td>
-              </tr>
-              {officialKwReceipt > 0 && <>
-              <tr className="sub-row">
-                <td>&nbsp;&nbsp;└ 📷 사진·영상 리뷰</td>
-                <td>{officialTextReceipt}</td>
-                <td>{totalReceipt}</td>
-                <td colSpan={3} className="unknown-cell">수집 대상</td>
-              </tr>
-              <tr className="sub-row">
-                <td>&nbsp;&nbsp;└ 🏷️ 키워드·별점 리뷰</td>
-                <td>{officialKwReceipt}</td>
-                <td>-</td>
-                <td colSpan={3} className="unknown-cell">텍스트 없음 (수집 제외)</td>
-              </tr>
-              </>}
-              <tr>
-                <td>네이버 검색결과 (블로그)</td>
-                <td colSpan={5}>{(s.naver_search_count||0).toLocaleString()} 건</td>
-              </tr>
-              <tr>
-                <td>인스타그램</td>
-                <td colSpan={5}>{(s.instagram_count||0).toLocaleString()} 건</td>
-              </tr>
-            </tbody>
-          </table>
-          {(officialReceipt > totalReceipt || officialBlog > totalBlog) && (
-            <p className="table-note">
-              ※ 네이버의 크롤링 제한으로 인해 전체 건수 중 일부만 수집될 수 있습니다.
-              수집 건수는 광고 판별 분석이 완료된 실제 리뷰 수입니다.
-            </p>
-          )}
-        </div>
-      )}
+      {/* ── 푸터 ── */}
+      <div className="rpt-footer">
+        <div>※ 본 리포트는 실제 크롤링 데이터 기반으로 자동 생성된 분석 문서입니다.</div>
+        <div>※ 블로그 광고 판별은 협찬 배지(reviewnote 등) 및 광고 키워드 자동 감지 방식으로 이루어집니다.</div>
+        <div>※ 감성 분석은 수집된 리뷰 텍스트의 긍정/부정 키워드 빈도 기반 해석 지수입니다.</div>
+      </div>
     </div>
   );
 }
+
 
 function AdBar({ label, count, total, color }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
