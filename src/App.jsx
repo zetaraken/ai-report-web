@@ -266,31 +266,68 @@ function Report({ report, onBack }) {
       {/* ── 감성분석 + 키워드 ── */}
       {sent.positive_pct != null && (
         <div className="rpt-2col">
+          {/* 감성 분석 (정성 해석) */}
           <div className="rpt-card">
             <div className="rpt-card-header">
-              <div className="rpt-en-title">Sentiment Analysis</div>
-              <h2>감성 분석</h2>
+              <div className="rpt-en-title">SENTIMENT ANALYSIS</div>
+              <h2>감성 분석 (정성 해석)</h2>
             </div>
+            <p className="rpt-sent-note">* 정량 NLP 원시값이 제공되지 않아 아래 시각화는 리뷰/언급 맥락을 기반으로 재구성한 해석 지수입니다.</p>
+            {/* 바 */}
             <div className="rpt-sent-bar">
               <div style={{width:`${sent.positive_pct}%`,background:"#2563eb"}}/>
-              <div style={{width:`${sent.neutral_pct}%`, background:"#cbd5e1"}}/>
+              <div style={{width:`${sent.neutral_pct}%`, background:"#94a3b8"}}/>
               <div style={{width:`${sent.negative_pct}%`,background:"#f59e0b"}}/>
             </div>
             <div className="rpt-sent-labels">
-              <span>긍정 {sent.positive_pct}%</span>
-              <span>중립 {sent.neutral_pct}%</span>
-              <span>주의 {sent.negative_pct}%</span>
+              <span>긍정 우세 (메뉴/공간)</span>
+              <span>중립 (일반 정보)</span>
+              <span>주의 (대기/혼잡)</span>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:"10px",marginTop:"16px"}}>
-              <div className="rpt-sent-card rpt-sent-pos">
-                <strong>✅ 긍정적인 반응 (Pros)</strong>
-                {sent.pos_voc?.length > 0 ? sent.pos_voc.map((v,i)=><p key={i}>"{v}…"</p>) : <p>{(s.pos_keywords||[]).slice(0,3).map(k=>k.word).join(", ")} 등의 긍정 키워드가 주를 이룹니다.</p>}
+            {/* 해석 카드 3종 */}
+            <div className="rpt-sent-interp-wrap">
+              <div className="rpt-sent-interp rpt-sent-interp--pos">
+                <div className="rpt-sent-interp-title">긍정 반응 (Positive)</div>
+                <p>{sent.pos_interp || `수집된 리뷰의 ${sent.positive_pct}%가 긍정 반응입니다.`}</p>
               </div>
-              <div className="rpt-sent-card rpt-sent-neg">
-                <strong>⚠️ 아쉬운 점 (Cons)</strong>
-                {sent.neg_voc?.length > 0 ? sent.neg_voc.map((v,i)=><p key={i}>"{v}…"</p>) : <p>{(s.neg_keywords||[]).slice(0,3).map(k=>k.word).join(", ")} 등의 부정 키워드가 포착됩니다.</p>}
+              <div className="rpt-sent-interp rpt-sent-interp--neu">
+                <div className="rpt-sent-interp-title">중립 반응 (Neutral)</div>
+                <p>{sent.neu_interp || `중립 반응이 ${sent.neutral_pct}%를 차지합니다.`}</p>
+              </div>
+              <div className="rpt-sent-interp rpt-sent-interp--cau">
+                <div className="rpt-sent-interp-title">주의 포인트 (Caution)</div>
+                <p>{sent.cau_interp || `부정 반응이 ${sent.negative_pct}%입니다.`}</p>
               </div>
             </div>
+            {/* Pros */}
+            <div className="rpt-sent-card rpt-sent-pos" style={{marginTop:"14px"}}>
+              <strong>✅ 긍정적인 반응 (Pros)</strong>
+              {sent.pros_points?.length > 0
+                ? sent.pros_points.map((p,i)=>(
+                    <div key={i} style={{marginTop:"8px"}}>
+                      <b>• {p.title}:</b> <span>{p.body}</span>
+                    </div>
+                  ))
+                : sent.pos_voc?.length > 0
+                  ? sent.pos_voc.map((v,i)=><p key={i}>"{v}…"</p>)
+                  : <p>{(s.pos_keywords||[]).slice(0,3).map(k=>k.word).join(", ")} 등의 긍정 키워드가 주를 이룹니다.</p>
+              }
+            </div>
+            {/* Cons */}
+            <div className="rpt-sent-card rpt-sent-neg" style={{marginTop:"10px"}}>
+              <strong>⚠️ 아쉬운 점 및 건의사항 (Cons)</strong>
+              {sent.cons_points?.length > 0
+                ? sent.cons_points.map((p,i)=>(
+                    <div key={i} style={{marginTop:"8px"}}>
+                      <b>• {p.title}:</b> <span>{p.body}</span>
+                    </div>
+                  ))
+                : sent.neg_voc?.length > 0
+                  ? sent.neg_voc.map((v,i)=><p key={i}>"{v}…"</p>)
+                  : <p>{(s.neg_keywords||[]).slice(0,3).map(k=>k.word).join(", ")} 등의 부정 키워드가 포착됩니다.</p>
+              }
+            </div>
+            {/* 긍정/부정 연관어 */}
             {(s.pos_keywords?.length > 0 || s.neg_keywords?.length > 0) && (
               <div className="rpt-kw-compare">
                 <div>

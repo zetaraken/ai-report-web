@@ -778,3 +778,16 @@ a:hover { text-decoration: underline; }
 .rpt-kw-cat-word { font-size: 13px; font-weight: 600; color: #1e293b; }
 .rpt-kw-cat-count { font-size: 11px; color: #64748b; }
 .rpt-kw-cat-empty { font-size: 12px; color: #94a3b8; margin: 0; }
+
+/* ── 감성분석 정성 해석 ───────────────────────────────── */
+.rpt-sent-note { font-size: 11px; color: #64748b; margin: 0 0 12px; line-height: 1.5; }
+.rpt-sent-interp-wrap { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.rpt-sent-interp { border-radius: 8px; padding: 12px 14px; }
+.rpt-sent-interp--pos { background: #eff6ff; border-left: 3px solid #2563eb; }
+.rpt-sent-interp--neu { background: #f8fafc; border-left: 3px solid #94a3b8; }
+.rpt-sent-interp--cau { background: #fffbeb; border-left: 3px solid #f59e0b; }
+.rpt-sent-interp-title { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 4px; }
+.rpt-sent-interp p { font-size: 12px; color: #475569; margin: 0; line-height: 1.6; }
+.rpt-sent-card strong { display: block; margin-bottom: 6px; font-size: 13px; }
+.rpt-sent-card b { color: #1e293b; }
+.rpt-sent-card span { font-size: 12px; color: #475569; line-height: 1.6; }
