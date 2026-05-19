@@ -343,10 +343,6 @@ function Report({ report, onBack }) {
             </div>
           </div>
 
-                    ))}
-                  </div>
-                </div>
-
                 {/* 카테고리별 카드 */}
                 {kwAnalysis && (kwAnalysis.menu.length > 0 || kwAnalysis.location.length > 0 || kwAnalysis.experience.length > 0) && (
                   <div className="rpt-kw-cat-grid">
