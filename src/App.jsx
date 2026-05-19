@@ -570,8 +570,29 @@ export default function App() {
       const res = await fetch(`${API}/api/merchants`);
       const data = await res.json();
       setMerchants(data);
+      // 가맹점 로드 직후 기존 리포트 자동 복원
+      await loadAllReports(data);
     } catch (e) {
       console.error("가맹점 목록 로드 실패", e);
+    }
+  };
+
+  // 전체 가맹점의 기존 리포트를 백엔드에서 일괄 로드
+  const loadAllReports = async (merchantList) => {
+    if (!merchantList || merchantList.length === 0) return;
+    const settled = await Promise.allSettled(
+      merchantList.map((m) =>
+        fetch(`${API}/api/reports/${m.id}`).then((r) => (r.ok ? r.json() : null))
+      )
+    );
+    const loaded = {};
+    settled.forEach((result, i) => {
+      if (result.status === "fulfilled" && result.value) {
+        loaded[merchantList[i].id] = result.value;
+      }
+    });
+    if (Object.keys(loaded).length > 0) {
+      setReports((prev) => ({ ...prev, ...loaded }));
     }
   };
 
@@ -769,11 +790,31 @@ export default function App() {
                       <span>🔑 플레이스 ID: {m.place_id}</span>
                       {m.instagram_tag && <span>📸 #{m.instagram_tag}</span>}
                     </div>
-                    {reports[m.id] && (
-                      <div className="report-badge" onClick={() => setViewReport(reports[m.id])}>
-                        📊 최근 리포트 보기 →
-                      </div>
-                    )}
+                    {reports[m.id] && (() => {
+                      const rpt = reports[m.id];
+                      const s = rpt.summary || {};
+                      const crawledAt = rpt.crawled_at
+                        ? new Date(rpt.crawled_at).toLocaleDateString("ko-KR", { month: "long", day: "numeric" })
+                        : "";
+                      const blogTotal = s.total_blog_reviews || 0;
+                      const receiptTotal = s.total_receipt_reviews || 0;
+                      const adPct = blogTotal > 0 ? Math.round((s.blog_ad_count || 0) / blogTotal * 100) : 0;
+                      const orgPct = blogTotal > 0 ? Math.round((s.blog_organic_count || 0) / blogTotal * 100) : 0;
+                      return (
+                        <div className="report-badge" onClick={() => setViewReport(rpt)}>
+                          <div className="report-badge-top">
+                            <span>📊 최근 리포트 보기 →</span>
+                            {crawledAt && <span className="report-badge-date">분석일 {crawledAt}</span>}
+                          </div>
+                          <div className="report-badge-stats">
+                            <span>영수증 {receiptTotal}건</span>
+                            <span>블로그 {blogTotal}건</span>
+                            <span style={{color:"#27c98f"}}>내돈내산 {orgPct}%</span>
+                            <span style={{color:"#e74c6f"}}>광고 {adPct}%</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="merchant-actions">
                     <button className="btn-run" onClick={() => startCrawl(m)}>
