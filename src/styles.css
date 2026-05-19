@@ -736,3 +736,45 @@ a:hover { text-decoration: underline; }
   background: #1a2133; font-weight: 700; color: #e2e8f0;
   border-top: 2px solid #2a3145; border-bottom: none;
 }
+
+/* ── 핵심 연관어 개선 ─────────────────────────────────── */
+.rpt-kw-top-wrap { margin-bottom: 20px; }
+.rpt-kw-top-title {
+  font-size: 13px; font-weight: 700; color: #e2e8f0;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.rpt-kw-period { font-size: 11px; color: #64748b; font-weight: 400; }
+.rpt-kw-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.rpt-kw-pill {
+  background: #1e2a4a; color: #93c5fd;
+  border: 1px solid #2563eb44; border-radius: 20px;
+  font-weight: 600; cursor: default; transition: background .15s;
+}
+.rpt-kw-pill:hover { background: #1d3a6e; }
+.rpt-kw-pill--lg { font-size: 14px; padding: 6px 14px; }
+.rpt-kw-pill--md { font-size: 13px; padding: 5px 12px; }
+.rpt-kw-pill--sm { font-size: 12px; padding: 4px 10px; color: #7ea8d8; }
+
+/* 카테고리 3분할 그리드 */
+.rpt-kw-cat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin-top: 4px;
+}
+@media (max-width: 600px) {
+  .rpt-kw-cat-grid { grid-template-columns: 1fr; }
+}
+.rpt-kw-cat {
+  border-radius: 10px; padding: 14px;
+}
+.rpt-kw-cat--menu     { background: #fefce8; border: 1px solid #fde68a; }
+.rpt-kw-cat--loc      { background: #eff6ff; border: 1px solid #bfdbfe; }
+.rpt-kw-cat--exp      { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.rpt-kw-cat-title {
+  font-size: 12px; font-weight: 700; color: #374151;
+  margin-bottom: 10px;
+}
+.rpt-kw-cat-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.rpt-kw-cat-list li { display: flex; justify-content: space-between; align-items: center; }
+.rpt-kw-cat-word { font-size: 13px; font-weight: 600; color: #1e293b; }
+.rpt-kw-cat-count { font-size: 11px; color: #64748b; }
+.rpt-kw-cat-empty { font-size: 12px; color: #94a3b8; margin: 0; }

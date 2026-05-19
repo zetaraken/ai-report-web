@@ -124,6 +124,7 @@ function Report({ report, onBack }) {
   const sent    = s.sentiment || {};
   const monthly = s.monthly_blog_stats || [];
   const kwBlog  = s.top_keywords_blog || [];
+  const kwAnalysis = s.keyword_analysis || null;
   const insights = s.insights || [];
 
   const crawledAt = new Date(report.crawled_at).toLocaleDateString("ko-KR", {year:"numeric",month:"long",day:"numeric"});
@@ -306,127 +307,119 @@ function Report({ report, onBack }) {
 
           <div className="rpt-card">
             <div className="rpt-card-header">
-              <div className="rpt-en-title">Keyword Analysis</div>
+              <div className="rpt-en-title">KEYWORD ANALYSIS</div>
               <h2>핵심 연관어 분석</h2>
             </div>
             {kwBlog.length > 0 ? (
               <>
-                <div className="rpt-wordcloud">
-                  <svg viewBox="0 0 320 160" width="100%" style={{maxHeight:"160px"}}>
-                    {kwBlog.slice(0,12).map((kw,i)=>{
-                      const sizes=[28,20,17,15,13,12,11,10,10,9,9,9];
-                      const colors=["#1a2942","#2563eb","#3b82f6","#64748b","#475569","#94a3b8","#cbd5e1","#94a3b8","#64748b","#94a3b8","#cbd5e1","#cbd5e1"];
-                      const pos=[[160,85],[82,50],[238,125],[88,145],[230,48],[152,22],[42,98],[268,88],[128,128],[198,162],[52,65],[282,32]];
-                      const [x,y]=pos[i]||[160,85];
-                      return <text key={i} x={x} y={y} fontSize={sizes[i]||9} fontWeight={i<3?"bold":"normal"} fill={colors[i]||"#cbd5e1"} textAnchor="middle">{kw.word}</text>;
-                    })}
-                  </svg>
+                {/* TOP 키워드 해시태그 pill */}
+                <div className="rpt-kw-top-wrap">
+                  <div className="rpt-kw-top-title">
+                    # TOP 키워드
+                    {kwAnalysis?.period && <span className="rpt-kw-period">({kwAnalysis.period})</span>}
+                  </div>
+                  <div className="rpt-kw-pills">
+                    {(kwAnalysis?.top_all || kwBlog).slice(0,15).map((kw,i)=>(
+                      <span key={i} className={`rpt-kw-pill rpt-kw-pill--${i<3?"lg":i<7?"md":"sm"}`}>
+                        #{kw.word}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="rpt-kw-list-title">주요 분석 키워드 Top 5</div>
-                <ol className="rpt-kw-ol">
-                  {kwBlog.slice(0,5).map((kw,i)=><li key={i}><strong>#{kw.word}</strong>: {kw.count}회 언급. 블로그 리뷰에서 가장 자주 등장하는 핵심 키워드입니다.</li>)}
-                </ol>
-                <div style={{marginTop:"14px",display:"flex",flexDirection:"column",gap:"6px"}}>
-                  {kwBlog.slice(0,8).map((kw,i)=>{
-                    const pct=Math.round(kw.count/kwBlog[0].count*100);
-                    return (
-                      <div key={i} style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                        <span style={{width:"22px",fontSize:"11px",color:"#64748b",textAlign:"right"}}>#{i+1}</span>
-                        <span style={{width:"66px",fontSize:"13px",fontWeight:"600",color:"#2563eb"}}>{kw.word}</span>
-                        <div style={{flex:1,background:"#f1f5f9",borderRadius:"4px",height:"12px",overflow:"hidden"}}>
-                          <div style={{width:`${pct}%`,height:"100%",background:"#2563eb",borderRadius:"4px"}}/>
+
+                {/* 카테고리별 카드 */}
+                {kwAnalysis && (
+                  <div className="rpt-kw-cat-grid">
+                    {/* 메뉴 키워드 */}
+                    <div className="rpt-kw-cat rpt-kw-cat--menu">
+                      <div className="rpt-kw-cat-title">🍽️ 메뉴 키워드</div>
+                      {kwAnalysis.menu.length > 0 ? (
+                        <ul className="rpt-kw-cat-list">
+                          {kwAnalysis.menu.map((k,i)=>(
+                            <li key={i}>
+                              <span className="rpt-kw-cat-word">{k.word}</span>
+                              <span className="rpt-kw-cat-count">({k.count}회 언급)</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="rpt-kw-cat-empty">데이터 수집 중</p>}
+                    </div>
+                    {/* 위치 키워드 */}
+                    <div className="rpt-kw-cat rpt-kw-cat--loc">
+                      <div className="rpt-kw-cat-title">📍 위치 키워드</div>
+                      {kwAnalysis.location.length > 0 ? (
+                        <ul className="rpt-kw-cat-list">
+                          {kwAnalysis.location.map((k,i)=>(
+                            <li key={i}>
+                              <span className="rpt-kw-cat-word">{k.word}</span>
+                              <span className="rpt-kw-cat-count">({k.count}회 언급)</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="rpt-kw-cat-empty">데이터 수집 중</p>}
+                    </div>
+                    {/* 경험 키워드 */}
+                    <div className="rpt-kw-cat rpt-kw-cat--exp">
+                      <div className="rpt-kw-cat-title">👥 경험 키워드</div>
+                      {kwAnalysis.experience.length > 0 ? (
+                        <ul className="rpt-kw-cat-list">
+                          {kwAnalysis.experience.map((k,i)=>(
+                            <li key={i}>
+                              <span className="rpt-kw-cat-word">{k.word}</span>
+                              <span className="rpt-kw-cat-count">({k.count}회 언급)</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <p className="rpt-kw-cat-empty">데이터 수집 중</p>}
+                    </div>
+                  </div>
+                )}
+
+                {/* 기존 Top5 바차트 (카테고리 미분류 시 폴백) */}
+                {!kwAnalysis && (
+                  <div style={{marginTop:"14px",display:"flex",flexDirection:"column",gap:"6px"}}>
+                    {kwBlog.slice(0,8).map((kw,i)=>{
+                      const pct=Math.round(kw.count/kwBlog[0].count*100);
+                      return (
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                          <span style={{width:"22px",fontSize:"11px",color:"#64748b",textAlign:"right"}}>#{i+1}</span>
+                          <span style={{width:"72px",fontSize:"13px",fontWeight:"600",color:"#2563eb"}}>{kw.word}</span>
+                          <div style={{flex:1,background:"#1e2330",borderRadius:"4px",height:"10px",overflow:"hidden"}}>
+                            <div style={{width:`${pct}%`,height:"100%",background:"#2563eb",borderRadius:"4px"}}/>
+                          </div>
+                          <span style={{fontSize:"12px",color:"#64748b",width:"34px",textAlign:"right"}}>{kw.count}회</span>
                         </div>
-                        <span style={{fontSize:"12px",color:"#64748b",width:"34px",textAlign:"right"}}>{kw.count}회</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             ) : <p style={{color:"#64748b",fontSize:"13px"}}>재분석 후 키워드 데이터가 표시됩니다.</p>}
           </div>
         </div>
       )}
 
-      {/* ── 월별 분석 ── */}
-      {monthly.length > 0 && (
-        <div className="rpt-card">
-          <div className="rpt-card-header">
-            <div className="rpt-en-title">Monthly Deep Dive</div>
-            <h2>월별 블로그 언급량 분석</h2>
-          </div>
-          <div className="rpt-monthly-grid">
-            {monthly.map((m,i)=>{
-              const isMax=m.total===Math.max(...monthly.map(x=>x.total));
-              return (
-                <div key={i} className={`rpt-month-card${isMax?" rpt-month-card--peak":""}`}>
-                  <div className="rpt-month-head">
-                    <div>
-                      <div className="rpt-month-badge">{m.month}</div>
-                      {isMax && <div className="rpt-month-tag">최고 기록 월</div>}
-                    </div>
-                    <div className="rpt-month-total"><strong>{m.total}</strong><span>건</span></div>
-                  </div>
-                  <div className="rpt-month-metrics">
-                    <div className="rpt-month-metric"><span>광고</span><strong style={{color:"#e74c6f"}}>{m.ad}</strong></div>
-                    <div className="rpt-month-metric"><span>내돈내산</span><strong style={{color:"#27c98f"}}>{m.organic}</strong></div>
-                    <div className="rpt-month-metric"><span>판별불가</span><strong>{m.unknown||0}</strong></div>
-                  </div>
-                  <div style={{height:"6px",borderRadius:"3px",overflow:"hidden",display:"flex",marginTop:"8px"}}>
-                    <div style={{flex:m.ad,background:"#e74c6f"}}/>
-                    <div style={{flex:m.organic,background:"#27c98f"}}/>
-                    <div style={{flex:m.unknown||0,background:"#8890a4"}}/>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="rpt-monthly-bar-chart">
-            {(()=>{
-              const maxT=Math.max(...monthly.map(m=>m.total),1);
-              return monthly.map((m,i)=>{
-                const h=Math.round(m.total/maxT*100);
-                const aH=m.total>0?Math.round(m.ad/m.total*100):0;
-                const oH=m.total>0?Math.round(m.organic/m.total*100):0;
-                return (
-                  <div key={i} className="rpt-mbar-col">
-                    <span className="rpt-mbar-val">{m.total}</span>
-                    <div className="rpt-mbar-wrap">
-                      <div className="rpt-mbar-stack" style={{height:`${Math.max(h,3)}%`}}>
-                        <div style={{flex:aH,background:"#e74c6f"}}/>
-                        <div style={{flex:oH,background:"#27c98f"}}/>
-                        <div style={{flex:100-aH-oH,background:"#8890a4"}}/>
-                      </div>
-                    </div>
-                    <span className="rpt-mbar-label">{m.month.slice(2).replace("-",".")}</span>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-          <div className="rpt-monthly-legend">
-            <span style={{color:"#e74c6f"}}>● 광고</span>
-            <span style={{color:"#27c98f"}}>● 내돈내산</span>
-            <span style={{color:"#8890a4"}}>● 판별불가</span>
-            <span style={{color:"#94a3b8",fontSize:"11px"}}>/ 날짜 미확인 게시글 제외</span>
-          </div>
-        </div>
-      )}
+
 
       {/* ── 월별 트렌드 + 상세 데이터 ── */}
-      {monthly.length > 0 && (() => {
-        // 월별 합계 (블로그 기준, 향후 채널별 확장 가능)
+      {(() => {
+        // 날짜 확인된 블로그 (monthly) + 날짜 미확인 건수 계산
+        const datedTotal   = monthly.reduce((s, m) => s + m.total, 0);
+        const undatedTotal = totalBlog - datedTotal;  // 날짜 미확인 건수
+        if (datedTotal === 0 && undatedTotal === 0) return null;
+
         const trendData = monthly.map(m => ({
-          month: m.month.slice(2).replace("-", "."),
+          month:    m.month.slice(2).replace("-", "."),  // "26.04"
           fullMonth: m.month,
-          receipt:  0,          // 영수증은 날짜 미수집 (추후 확장)
-          placeBlog: 0,         // 플레이스 블로그 (추후 확장)
-          naverBlog: m.total,   // 현재 수집된 블로그
-          instagram: 0,         // 인스타 (추후 확장)
-          kakao: 0,             // 카카오맵 (추후 확장)
-          total: m.total,
+          naverBlog: m.total,
+          ad:       m.ad,
+          organic:  m.organic,
+          unknown:  m.unknown || 0,
+          total:    m.total,
         }));
-        const maxTotal = Math.max(...trendData.map(d => d.total), 1);
-        const peakMonth = trendData.reduce((a, b) => a.total >= b.total ? a : b);
+        const maxTotal  = Math.max(...trendData.map(d => d.total), 1);
+        const peakIdx   = trendData.reduce((pi, d, i, arr) => d.total > arr[pi].total ? i : pi, 0);
+        const W = Math.max(trendData.length * 90 + 60, 300);
 
         return (
           <>
@@ -436,70 +429,69 @@ function Report({ report, onBack }) {
                 <div className="rpt-en-title">MONTHLY TREND</div>
                 <h2>월별 트렌드 분석</h2>
               </div>
-              <div className="rpt-trend-chart">
-                <svg viewBox={`0 0 ${trendData.length * 80 + 40} 200`} className="rpt-trend-svg">
-                  {/* 가로 그리드 */}
-                  {[0,25,50,75,100].map(pct => (
-                    <g key={pct}>
-                      <line
-                        x1="30" y1={180 - pct * 1.6}
-                        x2={trendData.length * 80 + 20} y2={180 - pct * 1.6}
-                        stroke="#e2e8f0" strokeWidth="1"
-                      />
-                      <text x="25" y={184 - pct * 1.6} textAnchor="end" fontSize="9" fill="#94a3b8">
-                        {Math.round(maxTotal * pct / 100)}
-                      </text>
-                    </g>
-                  ))}
-                  {/* 라인 */}
-                  <polyline
-                    fill="none"
-                    stroke="#2563eb"
-                    strokeWidth="2.5"
-                    points={trendData.map((d, i) =>
-                      `${i * 80 + 60},${180 - (d.total / maxTotal) * 160}`
-                    ).join(" ")}
-                  />
-                  {/* 점 + 수치 */}
-                  {trendData.map((d, i) => {
-                    const cx = i * 80 + 60;
-                    const cy = 180 - (d.total / maxTotal) * 160;
-                    const isPeak = d.month === peakMonth.month;
-                    return (
-                      <g key={i}>
-                        <circle cx={cx} cy={cy} r={isPeak ? 7 : 5}
-                          fill={isPeak ? "#1e3a8a" : "#2563eb"}
-                          stroke="white" strokeWidth="2"
-                        />
-                        <text x={cx} y={cy - 12} textAnchor="middle"
-                          fontSize="11" fontWeight="700" fill={isPeak ? "#1e3a8a" : "#374151"}>
-                          {d.total}
-                        </text>
-                        {isPeak && (
-                          <g>
-                            <rect x={cx - 42} y={cy - 36} width={84} height={18}
-                              rx="4" fill="#1e3a8a" opacity="0.9"/>
-                            <text x={cx} y={cy - 24} textAnchor="middle"
-                              fontSize="9" fill="white">탐색기 → 가시화 단계</text>
-                          </g>
-                        )}
-                        <text x={cx} y={196} textAnchor="middle"
-                          fontSize="10" fill={isPeak ? "#2563eb" : "#64748b"} fontWeight={isPeak ? "700" : "400"}>
-                          {d.month}
+              {trendData.length > 0 ? (
+                <div className="rpt-trend-chart">
+                  <svg viewBox={`0 0 ${W} 210`} className="rpt-trend-svg">
+                    {/* 그리드 */}
+                    {[0,25,50,75,100].map(pct => (
+                      <g key={pct}>
+                        <line x1="36" y1={185 - pct*1.6} x2={W-10} y2={185 - pct*1.6}
+                          stroke="#2a3145" strokeWidth="1"/>
+                        <text x="32" y={189 - pct*1.6} textAnchor="end" fontSize="9" fill="#64748b">
+                          {Math.round(maxTotal * pct / 100)}
                         </text>
                       </g>
-                    );
-                  })}
-                </svg>
-              </div>
+                    ))}
+                    {/* 라인 */}
+                    {trendData.length > 1 && (
+                      <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinejoin="round"
+                        points={trendData.map((d,i) =>
+                          `${i*90+65},${185-(d.total/maxTotal)*160}`
+                        ).join(" ")}
+                      />
+                    )}
+                    {/* 점 + 라벨 */}
+                    {trendData.map((d, i) => {
+                      const cx = i*90+65;
+                      const cy = 185-(d.total/maxTotal)*160;
+                      const isPeak = i === peakIdx;
+                      return (
+                        <g key={i}>
+                          <circle cx={cx} cy={cy} r={isPeak?7:5}
+                            fill={isPeak?"#1d4ed8":"#3b82f6"} stroke="white" strokeWidth="2"/>
+                          <text x={cx} y={cy-13} textAnchor="middle"
+                            fontSize="12" fontWeight="700"
+                            fill={isPeak?"#93c5fd":"#e2e8f0"}>{d.total}</text>
+                          {isPeak && trendData.length > 1 && (
+                            <g>
+                              <rect x={cx-46} y={cy-36} width={92} height={18}
+                                rx="4" fill="#1d4ed8" opacity="0.95"/>
+                              <text x={cx} y={cy-23} textAnchor="middle"
+                                fontSize="9" fill="white">▲ 최고 기록 월</text>
+                            </g>
+                          )}
+                          <text x={cx} y={202} textAnchor="middle"
+                            fontSize="10" fontWeight={isPeak?"700":"400"}
+                            fill={isPeak?"#60a5fa":"#64748b"}>{d.month}</text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              ) : (
+                <p className="rpt-trend-note" style={{padding:"20px 0"}}>
+                  날짜가 확인된 블로그 게시글이 없어 트렌드를 표시할 수 없습니다.
+                </p>
+              )}
               <p className="rpt-trend-note">
-                * 월별 관측치는 수집된 블로그 리뷰 날짜 기준이며,
-                날짜 미확인 게시글은 제외됩니다.
+                * 날짜가 확인된 블로그 {datedTotal}건 기준 /
+                날짜 미확인 {undatedTotal}건은 월별 집계에서 제외됨
                 {trendData.length >= 2 && (() => {
-                  const last = trendData[trendData.length - 1];
-                  const prev = trendData[trendData.length - 2];
+                  const last = trendData[trendData.length-1];
+                  const prev = trendData[trendData.length-2];
                   if (prev.total > 0 && last.total > prev.total) {
-                    return ` ${prev.month} → ${last.month} 구간에서 가시화 단계 진입이 확인됩니다.`;
+                    const growPct = Math.round((last.total - prev.total) / prev.total * 100);
+                    return ` / ${prev.month} → ${last.month} +${growPct}% 성장`;
                   }
                   return "";
                 })()}
@@ -512,44 +504,42 @@ function Report({ report, onBack }) {
                 <div className="rpt-en-title">RAW DATA</div>
                 <h2>월별 상세 데이터</h2>
               </div>
-              <p className="rpt-trend-note" style={{marginBottom:"12px"}}>
-                * 현재 수집 데이터는 네이버 블로그 기준이며, 영수증·인스타그램·카카오맵 채널은 순차 연동 예정입니다.
-              </p>
               <div className="rpt-monthly-table-wrap">
                 <table className="rpt-monthly-table">
                   <thead>
                     <tr>
                       <th>월 구분</th>
-                      <th>영수증<br/>리뷰</th>
-                      <th>플레이스<br/>블로그</th>
-                      <th>네이버<br/>블로그</th>
-                      <th>인스타<br/>그램</th>
-                      <th>카카오맵</th>
-                      <th>합계</th>
+                      <th>블로그<br/>합계</th>
+                      <th>광고</th>
+                      <th>내돈내산</th>
+                      <th>판별불가</th>
                     </tr>
                   </thead>
                   <tbody>
                     {trendData.map((d, i) => (
-                      <tr key={i} className={d.month === peakMonth.month ? "rpt-table-peak" : ""}>
+                      <tr key={i} className={i === peakIdx ? "rpt-table-peak" : ""}>
                         <td><strong>{d.month}</strong></td>
-                        <td>{d.receipt || "-"}</td>
-                        <td>{d.placeBlog || "-"}</td>
                         <td><strong>{d.naverBlog}</strong></td>
-                        <td>{d.instagram || "-"}</td>
-                        <td>{d.kakao || "-"}</td>
-                        <td><strong>{d.total}</strong></td>
+                        <td style={{color:"#e74c6f"}}>{d.ad}</td>
+                        <td style={{color:"#27c98f"}}>{d.organic}</td>
+                        <td style={{color:"#8890a4"}}>{d.unknown}</td>
                       </tr>
                     ))}
+                    {undatedTotal > 0 && (
+                      <tr style={{opacity:0.5}}>
+                        <td><em>날짜 미확인</em></td>
+                        <td><em>{undatedTotal}</em></td>
+                        <td colSpan="3" style={{fontSize:"11px",color:"#64748b"}}>월별 집계 제외</td>
+                      </tr>
+                    )}
                   </tbody>
                   <tfoot>
                     <tr>
                       <td><strong>누적 합계</strong></td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td><strong>{trendData.reduce((s, d) => s + d.naverBlog, 0)}</strong></td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td><strong>{trendData.reduce((s, d) => s + d.total, 0)}</strong></td>
+                      <td><strong>{totalBlog}</strong></td>
+                      <td style={{color:"#e74c6f"}}><strong>{adCount}</strong></td>
+                      <td style={{color:"#27c98f"}}><strong>{orgCount}</strong></td>
+                      <td style={{color:"#8890a4"}}><strong>{unkCount}</strong></td>
                     </tr>
                   </tfoot>
                 </table>
