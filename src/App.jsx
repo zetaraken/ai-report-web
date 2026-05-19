@@ -267,70 +267,82 @@ function Report({ report, onBack }) {
       {/* ── 감성분석 + 키워드 ── */}
       {sent.positive_pct != null && (
         <div className="rpt-2col">
-          {/* 감성 분석 (정성 해석) */}
+          {/* 감성 분석 — Image1 스타일 */}
           <div className="rpt-card">
             <div className="rpt-card-header">
               <div className="rpt-en-title">SENTIMENT ANALYSIS</div>
-              <h2>감성 분석 (정성 해석)</h2>
+              <h2>감성 분석</h2>
             </div>
-            <p className="rpt-sent-note">* 정량 NLP 원시값이 제공되지 않아 아래 시각화는 리뷰/언급 맥락을 기반으로 재구성한 해석 지수입니다.</p>
-            {/* 바 */}
-            <div className="rpt-sent-bar">
-              <div style={{width:`${sent.positive_pct}%`,background:"#2563eb"}}/>
-              <div style={{width:`${sent.neutral_pct}%`, background:"#94a3b8"}}/>
-              <div style={{width:`${sent.negative_pct}%`,background:"#f59e0b"}}/>
-            </div>
-            <div className="rpt-sent-labels">
-              <span>긍정 우세 (메뉴/공간)</span>
-              <span>중립 (일반 정보)</span>
-              <span>주의 (대기/혼잡)</span>
-            </div>
-            {/* 해석 카드 3종 */}
-            <div className="rpt-sent-interp-wrap">
-              <div className="rpt-sent-interp rpt-sent-interp--pos">
-                <div className="rpt-sent-interp-title">긍정 반응 (Positive)</div>
-                <p>{sent.pos_interp || `수집된 리뷰의 ${sent.positive_pct}%가 긍정 반응입니다.`}</p>
+
+            {/* 긍정 카드 */}
+            <div className="rpt-sent-v2 rpt-sent-v2--pos">
+              <div className="rpt-sent-v2-head">
+                <span className="rpt-sent-v2-icon">👍</span>
+                <span className="rpt-sent-v2-label">긍정</span>
+                <span className="rpt-sent-v2-pct">({sent.positive_pct}%)</span>
               </div>
-              <div className="rpt-sent-interp rpt-sent-interp--neu">
-                <div className="rpt-sent-interp-title">중립 반응 (Neutral)</div>
-                <p>{sent.neu_interp || `중립 반응이 ${sent.neutral_pct}%를 차지합니다.`}</p>
+              {(s.pos_keywords||[]).length > 0 && (
+                <p className="rpt-sent-v2-kw">
+                  <b>대표 키워드:</b> {(s.pos_keywords||[]).slice(0,5).map(k=>k.word).join(", ")}
+                </p>
+              )}
+              {sent.pos_voc?.length > 0 && (
+                <p className="rpt-sent-v2-voc">
+                  <b>주요 의견:</b> {sent.pos_voc.map((v,i)=>`"${v.slice(0,20)}"`).join(", ")}
+                </p>
+              )}
+            </div>
+
+            {/* 중립 카드 */}
+            <div className="rpt-sent-v2 rpt-sent-v2--neu">
+              <div className="rpt-sent-v2-head">
+                <span className="rpt-sent-v2-icon">➖</span>
+                <span className="rpt-sent-v2-label">중립</span>
+                <span className="rpt-sent-v2-pct">({sent.neutral_pct}%)</span>
               </div>
-              <div className="rpt-sent-interp rpt-sent-interp--cau">
-                <div className="rpt-sent-interp-title">주의 포인트 (Caution)</div>
-                <p>{sent.cau_interp || `부정 반응이 ${sent.negative_pct}%입니다.`}</p>
+              <p className="rpt-sent-v2-kw">
+                <b>대표 키워드:</b> {sent.neu_interp
+                  ? sent.neu_interp.replace(/중립 반응이 \d+%.*이며, /,"").replace(/대부분의 언급이 명확한 감성을 포함합니다./,"").trim() || "정보 전달형 언급"
+                  : "위치, 영업시간, 예약 정보 등 정보 전달형 언급"}
+              </p>
+            </div>
+
+            {/* 부정 카드 */}
+            <div className="rpt-sent-v2 rpt-sent-v2--neg">
+              <div className="rpt-sent-v2-head">
+                <span className="rpt-sent-v2-icon">👎</span>
+                <span className="rpt-sent-v2-label">부정</span>
+                <span className="rpt-sent-v2-pct">({sent.negative_pct}%)</span>
               </div>
+              {(s.neg_keywords||[]).length > 0 && (
+                <p className="rpt-sent-v2-kw">
+                  <b>대표 키워드:</b> {(s.neg_keywords||[]).slice(0,4).map(k=>k.word).join(", ")}
+                </p>
+              )}
+              {sent.negative_pct <= 5 && (
+                <p className="rpt-sent-v2-note"><b>비고:</b> 인기 매장에서 공통적으로 나타나는 현상으로, 운영 관리로 완화 가능합니다.</p>
+              )}
             </div>
-            {/* Pros */}
-            <div className="rpt-sent-card rpt-sent-pos" style={{marginTop:"14px"}}>
-              <strong>✅ 긍정적인 반응 (Pros)</strong>
-              {sent.pros_points?.length > 0
-                ? sent.pros_points.map((p,i)=>(
-                    <div key={i} style={{marginTop:"8px"}}>
-                      <b>• {p.title}:</b> <span>{p.body}</span>
-                    </div>
-                  ))
-                : sent.pos_voc?.length > 0
-                  ? sent.pos_voc.map((v,i)=><p key={i}>"{v}…"</p>)
-                  : <p>{(s.pos_keywords||[]).slice(0,3).map(k=>k.word).join(", ")} 등의 긍정 키워드가 주를 이룹니다.</p>
-              }
+
+            {/* 감성 분석 인사이트 */}
+            <div className="rpt-sent-v2-insight">
+              <div className="rpt-sent-v2-insight-title">💡 감성 분석 인사이트</div>
+              <p>
+                <b>긍정 감성 {sent.positive_pct}%는 {sent.positive_pct >= 85 ? "매우 우수한" : sent.positive_pct >= 70 ? "양호한" : "개선이 필요한"} 지표입니다.</b>
+                {(s.pos_keywords||[]).length >= 2
+                  ? ` 특히 "${(s.pos_keywords||[])[0]?.word}"와 "${(s.pos_keywords||[])[1]?.word}"가 동시에 높은 비중을 차지한 점은 매장만의 강력한 차별화 포인트입니다.`
+                  : " 고객의 전반적인 만족도가 높은 상태입니다."}
+                {sent.negative_pct > 0 && sent.negative_pct <= 10
+                  ? ` 부정 감성 ${sent.negative_pct}%는 매장의 인기도를 반증하는 지표로, ${(s.neg_keywords||[])[0]?.word ? `${(s.neg_keywords||[])[0].word} 관련` : "대기·혼잡"} 관리 시스템으로 효과적으로 대응하는 것을 권장합니다.`
+                  : sent.negative_pct > 10
+                  ? ` 부정 감성 ${sent.negative_pct}%는 개선이 필요한 수준으로, 부정 키워드를 중심으로 운영 전략을 점검하세요.`
+                  : ""}
+              </p>
             </div>
-            {/* Cons */}
-            <div className="rpt-sent-card rpt-sent-neg" style={{marginTop:"10px"}}>
-              <strong>⚠️ 아쉬운 점 및 건의사항 (Cons)</strong>
-              {sent.cons_points?.length > 0
-                ? sent.cons_points.map((p,i)=>(
-                    <div key={i} style={{marginTop:"8px"}}>
-                      <b>• {p.title}:</b> <span>{p.body}</span>
-                    </div>
-                  ))
-                : sent.neg_voc?.length > 0
-                  ? sent.neg_voc.map((v,i)=><p key={i}>"{v}…"</p>)
-                  : <p>{(s.neg_keywords||[]).slice(0,3).map(k=>k.word).join(", ")} 등의 부정 키워드가 포착됩니다.</p>
-              }
-            </div>
+
             {/* 긍정/부정 연관어 */}
             {(s.pos_keywords?.length > 0 || s.neg_keywords?.length > 0) && (
-              <div className="rpt-kw-compare">
+              <div className="rpt-kw-compare" style={{marginTop:"12px"}}>
                 <div>
                   <div className="rpt-kw-col-title" style={{color:"#10b981"}}>👍 긍정 연관어</div>
                   <div className="rpt-kw-tags">{(s.pos_keywords||[]).map((k,i)=><span key={i} className="rpt-tag-pos">{k.word} <b>{k.count}</b></span>)}</div>

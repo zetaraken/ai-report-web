@@ -837,3 +837,35 @@ a:hover { text-decoration: underline; }
   border-radius: 10px; padding: 1px 7px;
   margin-right: 4px; vertical-align: middle;
 }
+
+/* ── 감성분석 v2 (Image1 스타일) ──────────────────────── */
+.rpt-sent-v2 {
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+}
+.rpt-sent-v2--pos { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.rpt-sent-v2--neu { background: #fefce8; border: 1px solid #fde68a; }
+.rpt-sent-v2--neg { background: #fef2f2; border: 1px solid #fecaca; }
+
+.rpt-sent-v2-head {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+}
+.rpt-sent-v2-icon { font-size: 14px; }
+.rpt-sent-v2-label { font-size: 14px; font-weight: 700; color: #1e293b; }
+.rpt-sent-v2-pct   { font-size: 13px; color: #64748b; }
+
+.rpt-sent-v2-kw, .rpt-sent-v2-voc, .rpt-sent-v2-note {
+  font-size: 13px; color: #374151; margin: 4px 0; line-height: 1.6;
+}
+.rpt-sent-v2-kw b, .rpt-sent-v2-voc b, .rpt-sent-v2-note b { color: #1e293b; }
+
+.rpt-sent-v2-insight {
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 10px; padding: 14px 16px; margin-top: 4px;
+}
+.rpt-sent-v2-insight-title {
+  font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 8px;
+}
+.rpt-sent-v2-insight p {
+  font-size: 13px; color: #374151; line-height: 1.7; margin: 0;
+}
+.rpt-sent-v2-insight b { color: #1e293b; }
