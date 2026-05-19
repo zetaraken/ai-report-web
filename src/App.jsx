@@ -349,25 +349,19 @@ function Report({ report, onBack }) {
             </div>
             {kwBlog.length > 0 ? (
               <>
-                {/* TOP 키워드 해시태그 pill */}
+                {/* TOP 키워드 — 다크 해시태그 pill (기간 제거) */}
                 <div className="rpt-kw-top-wrap">
-                  <div className="rpt-kw-top-title">
-                    # TOP 키워드
-                    {kwAnalysis?.period && <span className="rpt-kw-period">({kwAnalysis.period})</span>}
-                  </div>
+                  <div className="rpt-kw-top-title"># TOP 키워드</div>
                   <div className="rpt-kw-pills">
                     {(kwAnalysis?.top_all || kwBlog).slice(0,15).map((kw,i)=>(
-                      <span key={i} className={`rpt-kw-pill rpt-kw-pill--${i<3?"lg":i<7?"md":"sm"}`}>
-                        #{kw.word}
-                      </span>
+                      <span key={i} className="rpt-kw-pill-dark">#{kw.word}</span>
                     ))}
                   </div>
                 </div>
 
                 {/* 카테고리별 카드 */}
-                {kwAnalysis && (
+                {kwAnalysis && (kwAnalysis.menu.length > 0 || kwAnalysis.location.length > 0 || kwAnalysis.experience.length > 0) && (
                   <div className="rpt-kw-cat-grid">
-                    {/* 메뉴 키워드 */}
                     <div className="rpt-kw-cat rpt-kw-cat--menu">
                       <div className="rpt-kw-cat-title">🍽️ 메뉴 키워드</div>
                       {kwAnalysis.menu.length > 0 ? (
@@ -379,9 +373,8 @@ function Report({ report, onBack }) {
                             </li>
                           ))}
                         </ul>
-                      ) : <p className="rpt-kw-cat-empty">데이터 수집 중</p>}
+                      ) : <p className="rpt-kw-cat-empty">해당 없음</p>}
                     </div>
-                    {/* 위치 키워드 */}
                     <div className="rpt-kw-cat rpt-kw-cat--loc">
                       <div className="rpt-kw-cat-title">📍 위치 키워드</div>
                       {kwAnalysis.location.length > 0 ? (
@@ -393,9 +386,8 @@ function Report({ report, onBack }) {
                             </li>
                           ))}
                         </ul>
-                      ) : <p className="rpt-kw-cat-empty">데이터 수집 중</p>}
+                      ) : <p className="rpt-kw-cat-empty">해당 없음</p>}
                     </div>
-                    {/* 경험 키워드 */}
                     <div className="rpt-kw-cat rpt-kw-cat--exp">
                       <div className="rpt-kw-cat-title">👥 경험 키워드</div>
                       {kwAnalysis.experience.length > 0 ? (
@@ -407,29 +399,31 @@ function Report({ report, onBack }) {
                             </li>
                           ))}
                         </ul>
-                      ) : <p className="rpt-kw-cat-empty">데이터 수집 중</p>}
+                      ) : <p className="rpt-kw-cat-empty">해당 없음</p>}
                     </div>
                   </div>
                 )}
 
-                {/* 기존 Top5 바차트 (카테고리 미분류 시 폴백) */}
-                {!kwAnalysis && (
-                  <div style={{marginTop:"14px",display:"flex",flexDirection:"column",gap:"6px"}}>
-                    {kwBlog.slice(0,8).map((kw,i)=>{
-                      const pct=Math.round(kw.count/kwBlog[0].count*100);
+                {/* 주요 분석 키워드 Top 5 */}
+                <div className="rpt-kw-top5-wrap">
+                  <div className="rpt-kw-top5-title">주요 분석 키워드 Top 5</div>
+                  <ol className="rpt-kw-top5-list">
+                    {(kwAnalysis?.top_all || kwBlog).slice(0,5).map((kw,i) => {
+                      const descs = [
+                        "블로그·영수증 리뷰에서 가장 자주 등장하는 핵심 키워드로, 고객 방문 동기와 직결됩니다.",
+                        "두 번째로 빈출하는 키워드로, 매장의 차별화 포인트와 연관성이 높습니다.",
+                        "세 번째 빈출 키워드로, 검색 노출 및 온라인 발견 가능성을 높이는 표현입니다.",
+                        "네 번째 키워드로, 고객 경험의 특정 측면이 반복 언급되고 있습니다.",
+                        "다섯 번째 키워드로, 방문 후기 확산과 재방문 유도에 기여하는 표현입니다.",
+                      ];
                       return (
-                        <div key={i} style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                          <span style={{width:"22px",fontSize:"11px",color:"#64748b",textAlign:"right"}}>#{i+1}</span>
-                          <span style={{width:"72px",fontSize:"13px",fontWeight:"600",color:"#2563eb"}}>{kw.word}</span>
-                          <div style={{flex:1,background:"#1e2330",borderRadius:"4px",height:"10px",overflow:"hidden"}}>
-                            <div style={{width:`${pct}%`,height:"100%",background:"#2563eb",borderRadius:"4px"}}/>
-                          </div>
-                          <span style={{fontSize:"12px",color:"#64748b",width:"34px",textAlign:"right"}}>{kw.count}회</span>
-                        </div>
+                        <li key={i}>
+                          <strong>#{kw.word}</strong>: {kw.count}회 언급. {descs[i]}
+                        </li>
                       );
                     })}
-                  </div>
-                )}
+                  </ol>
+                </div>
               </>
             ) : <p style={{color:"#64748b",fontSize:"13px"}}>재분석 후 키워드 데이터가 표시됩니다.</p>}
           </div>
