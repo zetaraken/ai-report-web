@@ -186,11 +186,73 @@ function Report({ report, onBack }) {
         </div>
       </div>
 
+      {/* 감성 분석 */}
+      {s.sentiment && (
+        <div className="insight-section">
+          <h2>😊 감성 분석 (Sentiment)</h2>
+          <div className="sentiment-grid">
+            <div className="sentiment-card positive">
+              <div className="sentiment-pct">{s.sentiment.positive_pct}%</div>
+              <div className="sentiment-label">긍정</div>
+              <div className="sentiment-count">{s.sentiment.positive_count}건</div>
+            </div>
+            <div className="sentiment-card neutral">
+              <div className="sentiment-pct">{s.sentiment.neutral_pct}%</div>
+              <div className="sentiment-label">중립</div>
+              <div className="sentiment-count">{s.sentiment.neutral_count}건</div>
+            </div>
+            <div className="sentiment-card negative">
+              <div className="sentiment-pct">{s.sentiment.negative_pct}%</div>
+              <div className="sentiment-label">부정</div>
+              <div className="sentiment-count">{s.sentiment.negative_count}건</div>
+            </div>
+          </div>
+
+          {/* 긍정/부정 연관어 */}
+          <div className="kw-compare">
+            <div className="kw-col">
+              <div className="kw-col-title" style={{color:"var(--organic)"}}>👍 긍정 연관어</div>
+              {(s.pos_keywords||[]).map((k,i)=>(
+                <span key={i} className="kw-tag positive-tag">{k.word} <b>{k.count}</b></span>
+              ))}
+            </div>
+            <div className="kw-col">
+              <div className="kw-col-title" style={{color:"var(--ad)"}}>👎 부정 연관어</div>
+              {(s.neg_keywords||[]).map((k,i)=>(
+                <span key={i} className="kw-tag negative-tag">{k.word} <b>{k.count}</b></span>
+              ))}
+            </div>
+          </div>
+
+          {/* VOC 대표 문장 */}
+          {(s.sentiment.pos_voc?.length > 0 || s.sentiment.neg_voc?.length > 0) && (
+            <div className="voc-wrap">
+              {s.sentiment.pos_voc?.length > 0 && (
+                <div className="voc-group">
+                  <div className="voc-title" style={{color:"var(--organic)"}}>💬 긍정 리뷰 샘플</div>
+                  {s.sentiment.pos_voc.map((v,i)=>(
+                    <div key={i} className="voc-item positive-voc">"{v}…"</div>
+                  ))}
+                </div>
+              )}
+              {s.sentiment.neg_voc?.length > 0 && (
+                <div className="voc-group">
+                  <div className="voc-title" style={{color:"var(--ad)"}}>💬 부정 리뷰 샘플</div>
+                  {s.sentiment.neg_voc.map((v,i)=>(
+                    <div key={i} className="voc-item negative-voc">"{v}…"</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 핵심 키워드 Top 10 */}
       {s.top_keywords_blog && s.top_keywords_blog.length > 0 && (
-        <div className="ad-summary keyword-section">
+        <div className="insight-section">
           <h2>🔑 블로그 핵심 키워드 Top 10</h2>
-          <div style={{ display:"flex", flexDirection:"column", gap:"8px", marginTop:"12px" }}>
+          <div className="keyword-list">
             {s.top_keywords_blog.map((kw, i) => {
               const maxCount = s.top_keywords_blog[0].count;
               const pct = Math.round((kw.count / maxCount) * 100);
@@ -211,7 +273,7 @@ function Report({ report, onBack }) {
 
       {/* 월별 블로그 언급량 추이 */}
       {s.monthly_blog_stats && s.monthly_blog_stats.length > 0 && (
-        <div className="ad-summary">
+        <div className="insight-section">
           <h2>📅 월별 블로그 언급량 추이</h2>
           <div className="monthly-chart">
             {(() => {
@@ -241,7 +303,27 @@ function Report({ report, onBack }) {
             <span style={{color:"var(--ad)"}}>● 광고</span>
             <span style={{color:"var(--organic)"}}>● 내돈내산</span>
             <span style={{color:"var(--unknown)"}}>● 판별불가</span>
-            <span>/ 날짜 미확인 게시글은 월별 집계 제외</span>
+            <span className="legend-note">/ 날짜 미확인 게시글은 월별 집계 제외</span>
+          </div>
+        </div>
+      )}
+
+      {/* 경영 제언 */}
+      {s.insights && s.insights.length > 0 && (
+        <div className="insight-section">
+          <h2>💡 경영 제언 (Insight)</h2>
+          <div className="insight-cards">
+            {s.insights.map((ins, i) => (
+              <div key={i} className={`insight-card insight-${ins.type}`}>
+                <div className="insight-icon">
+                  {ins.type === "positive" ? "✅" : ins.type === "warning" ? "⚠️" : "ℹ️"}
+                </div>
+                <div className="insight-body">
+                  <div className="insight-title">{ins.title}</div>
+                  <div className="insight-text">{ins.body}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

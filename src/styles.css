@@ -416,14 +416,76 @@ a:hover { text-decoration: underline; }
   .merchant-actions { width: 100%; justify-content: flex-start; }
 }
 
+/* ── 인사이트 공통 섹션 ─────────────────────────────────── */
+.insight-section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.insight-section h2 {
+  font-size: 15px; font-weight: 700; margin-bottom: 18px;
+}
+
+/* ── 감성 분석 ──────────────────────────────────────────── */
+.sentiment-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; margin-bottom: 20px;
+}
+.sentiment-card {
+  background: var(--bg3); border-radius: 10px;
+  padding: 16px 12px; text-align: center;
+  border: 1px solid var(--border);
+}
+.sentiment-card.positive { border-color: var(--organic); }
+.sentiment-card.negative { border-color: var(--ad); }
+.sentiment-pct {
+  font-size: 28px; font-weight: 800; line-height: 1;
+}
+.sentiment-card.positive .sentiment-pct { color: var(--organic); }
+.sentiment-card.negative .sentiment-pct { color: var(--ad); }
+.sentiment-card.neutral  .sentiment-pct { color: var(--unknown); }
+.sentiment-label { font-size: 12px; color: var(--text-muted); margin: 4px 0 2px; }
+.sentiment-count { font-size: 11px; color: var(--text-muted); }
+
+/* ── 긍정/부정 연관어 ───────────────────────────────────── */
+.kw-compare {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 16px; margin-bottom: 20px;
+}
+@media (max-width: 600px) { .kw-compare { grid-template-columns: 1fr; } }
+.kw-col { display: flex; flex-direction: column; gap: 6px; }
+.kw-col-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.kw-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 99px;
+  font-size: 13px; width: fit-content;
+}
+.kw-tag b { font-weight: 700; }
+.positive-tag { background: rgba(39,201,143,.15); color: var(--organic); }
+.negative-tag { background: rgba(231,76,111,.15); color: var(--ad); }
+
+/* ── VOC 샘플 ───────────────────────────────────────────── */
+.voc-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .voc-wrap { grid-template-columns: 1fr; } }
+.voc-group { display: flex; flex-direction: column; gap: 6px; }
+.voc-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.voc-item {
+  font-size: 12px; line-height: 1.5;
+  padding: 8px 12px; border-radius: 8px;
+  font-style: italic;
+}
+.positive-voc { background: rgba(39,201,143,.1); color: var(--text); border-left: 3px solid var(--organic); }
+.negative-voc { background: rgba(231,76,111,.1);  color: var(--text); border-left: 3px solid var(--ad); }
+
 /* ── 키워드 Top 10 ───────────────────────────────────────── */
-.keyword-section { margin-top: 0; }
+.keyword-list { display: flex; flex-direction: column; gap: 8px; }
 .keyword-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 4px 0;
+  display: flex; align-items: center; gap: 10px; padding: 2px 0;
 }
 .keyword-rank {
-  width: 24px; text-align: right; font-size: 12px;
+  width: 26px; text-align: right; font-size: 12px;
   color: var(--text-muted); flex-shrink: 0;
 }
 .keyword-word {
@@ -446,7 +508,7 @@ a:hover { text-decoration: underline; }
 /* ── 월별 추이 차트 ─────────────────────────────────────── */
 .monthly-chart {
   display: flex; align-items: flex-end; gap: 6px;
-  height: 160px; padding: 0 4px; margin-top: 16px;
+  height: 160px; padding: 0 4px; margin-top: 4px;
 }
 .monthly-col {
   flex: 1; display: flex; flex-direction: column;
@@ -461,16 +523,25 @@ a:hover { text-decoration: underline; }
   width: 100%; display: flex; flex-direction: column;
   border-radius: 4px 4px 0 0; overflow: hidden; min-height: 4px;
 }
-.monthly-count {
-  font-size: 11px; color: var(--text-muted);
-  text-align: center;
-}
-.monthly-label {
-  font-size: 11px; color: var(--text-muted);
-  text-align: center; white-space: nowrap;
-}
+.monthly-count { font-size: 11px; color: var(--text-muted); text-align: center; }
+.monthly-label { font-size: 11px; color: var(--text-muted); text-align: center; white-space: nowrap; }
 .monthly-legend {
   display: flex; gap: 16px; margin-top: 10px;
   font-size: 12px; color: var(--text-muted);
   justify-content: center; flex-wrap: wrap;
 }
+.legend-note { color: var(--text-muted); font-size: 11px; }
+
+/* ── 경영 제언 ──────────────────────────────────────────── */
+.insight-cards { display: flex; flex-direction: column; gap: 12px; }
+.insight-card {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 14px 16px; border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.insight-card.insight-positive { background: rgba(39,201,143,.08); border-color: rgba(39,201,143,.3); }
+.insight-card.insight-warning  { background: rgba(231,76,111,.08);  border-color: rgba(231,76,111,.3); }
+.insight-card.insight-info     { background: rgba(79,142,247,.08);  border-color: rgba(79,142,247,.3); }
+.insight-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.insight-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.insight-text  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
