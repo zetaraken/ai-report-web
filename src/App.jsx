@@ -194,41 +194,6 @@ function Report({ report, onBack }) {
         </div>
       </div>
 
-      {/* ── KPI 카드 ── */}
-      <div className="rpt-kpi-grid">
-        <div className="rpt-kpi">
-          <div className="rpt-kpi-label">네이버 방문자리뷰 (공식)</div>
-          <div className="rpt-kpi-value">{officialReceipt.toLocaleString()}<span>건</span></div>
-          <div className="rpt-kpi-desc">수집 {totalReceipt}건 분석 완료</div>
-        </div>
-        <div className="rpt-kpi">
-          <div className="rpt-kpi-label">네이버 블로그리뷰 (공식)</div>
-          <div className="rpt-kpi-value">{(officialBlog||totalBlog).toLocaleString()}<span>건</span></div>
-          <div className="rpt-kpi-desc">수집 {totalBlog}건 원문 방문 분석</div>
-        </div>
-        <div className="rpt-kpi">
-          <div className="rpt-kpi-label">내돈내산 비율</div>
-          <div className="rpt-kpi-value" style={{color:"#10b981"}}>{orgPct}<span>%</span></div>
-          <div className="rpt-kpi-desc">{orgCount}건 순수 후기</div>
-        </div>
-        <div className="rpt-kpi">
-          <div className="rpt-kpi-label">광고 비율</div>
-          <div className="rpt-kpi-value" style={{color:"#e74c6f"}}>{adPct}<span>%</span></div>
-          <div className="rpt-kpi-desc">{adCount}건 협찬·체험단</div>
-        </div>
-        {sent.positive_pct != null && (
-          <div className="rpt-kpi">
-            <div className="rpt-kpi-label">긍정 반응</div>
-            <div className="rpt-kpi-value" style={{color:"#2563eb"}}>{sent.positive_pct}<span>%</span></div>
-            <div className="rpt-kpi-desc">{sent.positive_count}건 긍정 리뷰</div>
-          </div>
-        )}
-        <div className="rpt-kpi">
-          <div className="rpt-kpi-label">인스타그램</div>
-          <div className="rpt-kpi-value">{igCount.toLocaleString()}<span>건</span></div>
-          <div className="rpt-kpi-desc">해시태그 콘텐츠</div>
-        </div>
-      </div>
 
       {/* ── Executive Summary ── */}
       <div className="rpt-exec">
