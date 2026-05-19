@@ -710,3 +710,29 @@ a:hover { text-decoration: underline; }
 
 /* 푸터 */
 .rpt-footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #2a3145; font-size: 0.82rem; color: #8890a4; display: flex; flex-direction: column; gap: 4px; }
+
+/* 월별 트렌드 라인차트 */
+.rpt-trend-chart { width: 100%; overflow-x: auto; margin: 8px 0 4px; }
+.rpt-trend-svg { width: 100%; min-width: 320px; height: auto; }
+.rpt-trend-note { font-size: 11px; color: #94a3b8; text-align: center; margin: 4px 0 0; line-height: 1.6; }
+
+/* 월별 상세 테이블 */
+.rpt-monthly-table-wrap { overflow-x: auto; }
+.rpt-monthly-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rpt-monthly-table th {
+  background: #1e2a3a; color: #94a3b8; font-weight: 600;
+  padding: 10px 8px; text-align: center; border-bottom: 2px solid #2a3145;
+  white-space: nowrap; font-size: 12px;
+}
+.rpt-monthly-table td {
+  padding: 9px 8px; text-align: center; color: #cbd5e1;
+  border-bottom: 1px solid #1e2330;
+}
+.rpt-monthly-table td:first-child { text-align: left; color: #e2e8f0; font-size: 12px; }
+.rpt-monthly-table tbody tr:hover { background: rgba(37,99,235,.06); }
+.rpt-monthly-table .rpt-table-peak { background: rgba(37,99,235,.08); }
+.rpt-monthly-table .rpt-table-peak td { color: #e2e8f0; }
+.rpt-monthly-table tfoot td {
+  background: #1a2133; font-weight: 700; color: #e2e8f0;
+  border-top: 2px solid #2a3145; border-bottom: none;
+}

@@ -412,6 +412,153 @@ function Report({ report, onBack }) {
         </div>
       )}
 
+      {/* ── 월별 트렌드 + 상세 데이터 ── */}
+      {monthly.length > 0 && (() => {
+        // 월별 합계 (블로그 기준, 향후 채널별 확장 가능)
+        const trendData = monthly.map(m => ({
+          month: m.month.slice(2).replace("-", "."),
+          fullMonth: m.month,
+          receipt:  0,          // 영수증은 날짜 미수집 (추후 확장)
+          placeBlog: 0,         // 플레이스 블로그 (추후 확장)
+          naverBlog: m.total,   // 현재 수집된 블로그
+          instagram: 0,         // 인스타 (추후 확장)
+          kakao: 0,             // 카카오맵 (추후 확장)
+          total: m.total,
+        }));
+        const maxTotal = Math.max(...trendData.map(d => d.total), 1);
+        const peakMonth = trendData.reduce((a, b) => a.total >= b.total ? a : b);
+
+        return (
+          <>
+            {/* 월별 트렌드 라인차트 */}
+            <div className="rpt-card">
+              <div className="rpt-card-header">
+                <div className="rpt-en-title">MONTHLY TREND</div>
+                <h2>월별 트렌드 분석</h2>
+              </div>
+              <div className="rpt-trend-chart">
+                <svg viewBox={`0 0 ${trendData.length * 80 + 40} 200`} className="rpt-trend-svg">
+                  {/* 가로 그리드 */}
+                  {[0,25,50,75,100].map(pct => (
+                    <g key={pct}>
+                      <line
+                        x1="30" y1={180 - pct * 1.6}
+                        x2={trendData.length * 80 + 20} y2={180 - pct * 1.6}
+                        stroke="#e2e8f0" strokeWidth="1"
+                      />
+                      <text x="25" y={184 - pct * 1.6} textAnchor="end" fontSize="9" fill="#94a3b8">
+                        {Math.round(maxTotal * pct / 100)}
+                      </text>
+                    </g>
+                  ))}
+                  {/* 라인 */}
+                  <polyline
+                    fill="none"
+                    stroke="#2563eb"
+                    strokeWidth="2.5"
+                    points={trendData.map((d, i) =>
+                      `${i * 80 + 60},${180 - (d.total / maxTotal) * 160}`
+                    ).join(" ")}
+                  />
+                  {/* 점 + 수치 */}
+                  {trendData.map((d, i) => {
+                    const cx = i * 80 + 60;
+                    const cy = 180 - (d.total / maxTotal) * 160;
+                    const isPeak = d.month === peakMonth.month;
+                    return (
+                      <g key={i}>
+                        <circle cx={cx} cy={cy} r={isPeak ? 7 : 5}
+                          fill={isPeak ? "#1e3a8a" : "#2563eb"}
+                          stroke="white" strokeWidth="2"
+                        />
+                        <text x={cx} y={cy - 12} textAnchor="middle"
+                          fontSize="11" fontWeight="700" fill={isPeak ? "#1e3a8a" : "#374151"}>
+                          {d.total}
+                        </text>
+                        {isPeak && (
+                          <g>
+                            <rect x={cx - 42} y={cy - 36} width={84} height={18}
+                              rx="4" fill="#1e3a8a" opacity="0.9"/>
+                            <text x={cx} y={cy - 24} textAnchor="middle"
+                              fontSize="9" fill="white">탐색기 → 가시화 단계</text>
+                          </g>
+                        )}
+                        <text x={cx} y={196} textAnchor="middle"
+                          fontSize="10" fill={isPeak ? "#2563eb" : "#64748b"} fontWeight={isPeak ? "700" : "400"}>
+                          {d.month}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+              <p className="rpt-trend-note">
+                * 월별 관측치는 수집된 블로그 리뷰 날짜 기준이며,
+                날짜 미확인 게시글은 제외됩니다.
+                {trendData.length >= 2 && (() => {
+                  const last = trendData[trendData.length - 1];
+                  const prev = trendData[trendData.length - 2];
+                  if (prev.total > 0 && last.total > prev.total) {
+                    return ` ${prev.month} → ${last.month} 구간에서 가시화 단계 진입이 확인됩니다.`;
+                  }
+                  return "";
+                })()}
+              </p>
+            </div>
+
+            {/* 월별 상세 데이터 테이블 */}
+            <div className="rpt-card">
+              <div className="rpt-card-header">
+                <div className="rpt-en-title">RAW DATA</div>
+                <h2>월별 상세 데이터</h2>
+              </div>
+              <p className="rpt-trend-note" style={{marginBottom:"12px"}}>
+                * 현재 수집 데이터는 네이버 블로그 기준이며, 영수증·인스타그램·카카오맵 채널은 순차 연동 예정입니다.
+              </p>
+              <div className="rpt-monthly-table-wrap">
+                <table className="rpt-monthly-table">
+                  <thead>
+                    <tr>
+                      <th>월 구분</th>
+                      <th>영수증<br/>리뷰</th>
+                      <th>플레이스<br/>블로그</th>
+                      <th>네이버<br/>블로그</th>
+                      <th>인스타<br/>그램</th>
+                      <th>카카오맵</th>
+                      <th>합계</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trendData.map((d, i) => (
+                      <tr key={i} className={d.month === peakMonth.month ? "rpt-table-peak" : ""}>
+                        <td><strong>{d.month}</strong></td>
+                        <td>{d.receipt || "-"}</td>
+                        <td>{d.placeBlog || "-"}</td>
+                        <td><strong>{d.naverBlog}</strong></td>
+                        <td>{d.instagram || "-"}</td>
+                        <td>{d.kakao || "-"}</td>
+                        <td><strong>{d.total}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td><strong>누적 합계</strong></td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td><strong>{trendData.reduce((s, d) => s + d.naverBlog, 0)}</strong></td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td><strong>{trendData.reduce((s, d) => s + d.total, 0)}</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       {/* ── 마케팅 인사이트 ── */}
       {insights.length > 0 && (
         <div className="rpt-card">
