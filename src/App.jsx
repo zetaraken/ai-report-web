@@ -531,8 +531,8 @@ function Report({ report, onBack }) {
                 </p>
               )}
               <p className="rpt-trend-note">
-                * 날짜가 확인된 블로그 {datedTotal}건 기준 /
-                날짜 미확인 {undatedTotal}건은 월별 집계에서 제외됨
+                * 날짜가 확인된 블로그 {datedBlog}건 / 영수증 {datedReceipt}건 기준 /
+                날짜 미확인 {undatedBlog}건은 월별 집계에서 제외됨
                 {trendData.length >= 2 && (() => {
                   const last = trendData[trendData.length-1];
                   const prev = trendData[trendData.length-2];
